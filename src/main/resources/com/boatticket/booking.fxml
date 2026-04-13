@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="0" xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.boatticket.controller.BookingController"
+      style="-fx-background-color: #f0f4f8;">
+
+    <fx:define>
+        <ToggleGroup fx:id="vehicleGroup"/>
+    </fx:define>
+
+    <!-- Top bar: header + logged-in info + toolbar -->
+    <HBox styleClass="header-banner" alignment="CENTER_LEFT" spacing="0">
+        <VBox HBox.hgrow="ALWAYS" alignment="CENTER">
+            <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
+            <Label text="🚤 Sharavati Boat Ride Ticket Booking" styleClass="header-title"/>
+            <Label text="1-Hour Scenic Ride  •  Allocate Boat &amp; Generate Ticket" styleClass="header-sub"/>
+        </VBox>
+        <VBox alignment="CENTER_RIGHT" spacing="6" style="-fx-padding: 0 16 0 0;">
+            <Label fx:id="loggedInLabel" style="-fx-text-fill: #cce5ff; -fx-font-size: 11px;"/>
+            <HBox spacing="8">
+                <Button fx:id="backupBtn" text="💾 Backup DB" styleClass="btn-toolbar" onAction="#handleBackup"/>
+                <Button fx:id="logoutBtn" text="🔓 Logout"   styleClass="btn-toolbar" onAction="#handleLogout"/>
+            </HBox>
+        </VBox>
+    </HBox>
+
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                style="-fx-background-color: #f0f4f8;">
+        <VBox spacing="14" style="-fx-padding: 18 28 18 28;">
+
+            <!-- Customer Details -->
+            <VBox styleClass="card">
+                <Label text="👤  Customer Details" styleClass="card-heading"/>
+                <GridPane hgap="16" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50"/>
+                        <ColumnConstraints percentWidth="50"/>
+                    </columnConstraints>
+                    <Label text="Customer Name *"  styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <Label text="Contact Number *" styleClass="field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                    <TextField fx:id="customerNameField"  promptText="Enter full name"
+                               styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                    <TextField fx:id="contactNumberField" promptText="Enter mobile number"
+                               styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                </GridPane>
+            </VBox>
+
+            <!-- Boat & Driver Assignment -->
+            <VBox styleClass="card" spacing="10">
+                <Label text="⛵  Assign Boat &amp; Driver *" styleClass="card-heading"/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <TextField fx:id="boatSearchField" promptText="Search driver / boat name / number..."
+                               styleClass="input-field" prefWidth="280"/>
+                    <ComboBox fx:id="boatComboBox" styleClass="input-field"
+                              promptText="Select boat owner..." HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <Label fx:id="boatDetailsLabel" text="" wrapText="true"
+                       style="-fx-text-fill: #1a6e1a; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 4 0 0 4;"/>
+            </VBox>
+
+            <!-- Ride Details -->
+            <VBox styleClass="card">
+                <Label text="🛶  Ride Details" styleClass="card-heading"/>
+                <GridPane hgap="16" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="40"/>
+                        <ColumnConstraints percentWidth="30"/>
+                        <ColumnConstraints percentWidth="30"/>
+                    </columnConstraints>
+                    <Label text="Passengers"          styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <Label text="Duration"             styleClass="field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                    <Label fx:id="boatFeeLabel" text="Rs 1600" styleClass="fee-label"
+                           GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+                    <Spinner fx:id="peopleSpinner" styleClass="input-field" prefWidth="160"
+                             GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                    <Label text="🕐 1 Hour (Preset)" styleClass="preset-tag"
+                           GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                </GridPane>
+            </VBox>
+
+            <!-- Life Jacket -->
+            <VBox styleClass="card">
+                <CheckBox fx:id="lifeJacketCheckBox"
+                          text="Require Life Jackets  (Rs 10 per jacket)"
+                          styleClass="check-main"/>
+                <HBox fx:id="lifeJacketBox" spacing="20" alignment="CENTER_LEFT"
+                      style="-fx-padding: 10 0 0 24;">
+                    <Label text="Number of Jackets:" styleClass="field-label"/>
+                    <Spinner fx:id="jacketSpinner" prefWidth="120" styleClass="input-field"/>
+                    <Label text="Jacket Fee:" styleClass="field-label"/>
+                    <Label fx:id="jacketFeeLabel" text="Rs 0" styleClass="fee-label"/>
+                </HBox>
+            </VBox>
+
+            <!-- Parking -->
+            <VBox styleClass="card">
+                <CheckBox fx:id="parkingCheckBox" text="Require Parking" styleClass="check-main"/>
+                <VBox fx:id="parkingBox" spacing="10" style="-fx-padding: 10 0 0 24;">
+                    <Label text="Select Vehicle Type:" styleClass="field-label"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <RadioButton fx:id="rbTwoWheeler" text="Two-Wheeler (Rs 10)" styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
+                        <RadioButton fx:id="rbCar"        text="Car (Rs 20)"         styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
+                    </HBox>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <RadioButton fx:id="rbBus"   text="Bus (Rs 40)"   styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
+                        <RadioButton fx:id="rbTruck" text="Tempo Traveller (Rs 50)" styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
+                    </HBox>
+                    <HBox spacing="16" alignment="CENTER_LEFT">
+                        <Label text="Vehicle Number (optional):" styleClass="field-label"/>
+                        <TextField fx:id="vehicleNumberField" promptText="e.g. KA 01 AB 1234"
+                                   prefWidth="200" styleClass="input-field"/>
+                        <Label text="Parking Fee:" styleClass="field-label"/>
+                        <Label fx:id="parkingFeeLabel" text="Rs 0" styleClass="fee-label"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <!-- Payment Summary -->
+            <VBox styleClass="card" spacing="0">
+                <Label text="💰  Payment Summary" styleClass="card-heading"/>
+                <GridPane hgap="0" vgap="0" style="-fx-padding: 6 0 0 0;">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50"/>
+                        <ColumnConstraints percentWidth="50"/>
+                    </columnConstraints>
+                    <VBox styleClass="pay-cell-driver" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                        <Label text="To be paid to BOAT DRIVER" style="-fx-font-size:10px; -fx-text-fill:#555;"/>
+                        <Label fx:id="driverAmountLabel" text="Rs 0" styleClass="pay-amount-driver"/>
+                        <Label text="(Boat Ride + Life Jacket)" style="-fx-font-size:9px; -fx-text-fill:#777;"/>
+                    </VBox>
+                    <VBox styleClass="pay-cell-counter" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <Label text="Payable at COUNTER" style="-fx-font-size:10px; -fx-text-fill:#555;"/>
+                        <Label fx:id="counterAmountLabel" text="Rs 0" styleClass="pay-amount-counter"/>
+                        <Label text="(Parking Fee)" style="-fx-font-size:9px; -fx-text-fill:#777;"/>
+                    </VBox>
+                </GridPane>
+            </VBox>
+
+            <!-- Total -->
+            <HBox styleClass="total-bar" alignment="CENTER_RIGHT" spacing="20">
+                <Label text="GRAND TOTAL" styleClass="total-label"/>
+                <Label fx:id="totalFeeLabel" text="Rs 400" styleClass="total-amount"/>
+            </HBox>
+
+            <!-- Status -->
+            <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity"
+                   style="-fx-font-size: 12px;"/>
+
+            <!-- Action Buttons -->
+            <HBox spacing="16" alignment="CENTER_RIGHT">
+                <Button fx:id="resetBtn"    text="🔄 Reset"
+                        styleClass="btn-secondary" onAction="#handleReset"/>
+                <Button fx:id="generateBtn" text="📄 Generate &amp; Save PDF Ticket"
+                        styleClass="btn-primary"   onAction="#handleGenerateTicket"/>
+            </HBox>
+
+            <Label styleClass="hint-text"
+                   text="ℹ️  DB stored at ~/BoatTicketSystem/tickets.db  |  Use Backup button to export a copy anytime."
+                   wrapText="true"/>
+            <VBox style="-fx-padding:0 0 10 0;"/>
+        </VBox>
+    </ScrollPane>
+</VBox>
