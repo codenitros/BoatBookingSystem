@@ -83,18 +83,18 @@
             </VBox>
 
             <!-- Life Jacket -->
-            <VBox styleClass="card">
-                <CheckBox fx:id="lifeJacketCheckBox"
-                          text="Require Life Jackets  (Rs 10 per jacket)"
-                          styleClass="check-main"/>
-                <HBox fx:id="lifeJacketBox" spacing="20" alignment="CENTER_LEFT"
-                      style="-fx-padding: 10 0 0 24;">
-                    <Label text="Number of Jackets:" styleClass="field-label"/>
-                    <Spinner fx:id="jacketSpinner" prefWidth="120" styleClass="input-field"/>
-                    <Label text="Jacket Fee:" styleClass="field-label"/>
-                    <Label fx:id="jacketFeeLabel" text="Rs 0" styleClass="fee-label"/>
-                </HBox>
-            </VBox>
+<!--            <VBox styleClass="card">-->
+<!--                <CheckBox fx:id="lifeJacketCheckBox"-->
+<!--                          text="Require Life Jackets  (Rs 10 per jacket)"-->
+<!--                          styleClass="check-main"/>-->
+<!--                <HBox fx:id="lifeJacketBox" spacing="20" alignment="CENTER_LEFT"-->
+<!--                      style="-fx-padding: 10 0 0 24;">-->
+<!--                    <Label text="Number of Jackets:" styleClass="field-label"/>-->
+<!--                    <Spinner fx:id="jacketSpinner" prefWidth="120" styleClass="input-field"/>-->
+<!--                    <Label text="Jacket Fee:" styleClass="field-label"/>-->
+<!--                    <Label fx:id="jacketFeeLabel" text="Rs 0" styleClass="fee-label"/>-->
+<!--                </HBox>-->
+<!--            </VBox>-->
 
             <!-- Parking -->
             <VBox styleClass="card">
