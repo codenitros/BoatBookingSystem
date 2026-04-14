@@ -73,7 +73,7 @@
                     </columnConstraints>
                     <Label text="Passengers"          styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
                     <Label text="Duration"             styleClass="field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
-                    <Label fx:id="boatFeeLabel" text="Rs 1600" styleClass="fee-label"
+                    <Label fx:id="boatFeeLabel" text="Rs 1500" styleClass="fee-label"
                            GridPane.columnIndex="2" GridPane.rowIndex="1"/>
                     <Spinner fx:id="peopleSpinner" styleClass="input-field" prefWidth="160"
                              GridPane.columnIndex="0" GridPane.rowIndex="1"/>

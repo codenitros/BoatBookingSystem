@@ -6,10 +6,10 @@ import java.util.UUID;
 
 public class Ticket {
 
-    public static final int BOAT_RIDE_FEE_PER_HOUR = 1600;
+    public static final int BOAT_RIDE_FEE_PER_HOUR = 1500;
     public static final int LIFE_JACKET_FEE           = 10;
     public static final int PARKING_FEE_CAR            = 20;
-    public static final int PARKING_FEE_BUS             = 40;
+    public static final int PARKING_FEE_BUS             = 50;
     public static final int PARKING_FEE_TEMPOTRAVELLER   = 35;
 
     private final String        ticketId;

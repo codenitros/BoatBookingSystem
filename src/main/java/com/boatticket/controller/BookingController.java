@@ -30,14 +30,7 @@ public class BookingController implements Initializable {
     // Ride
     @FXML private Spinner<Integer> peopleSpinner;
     @FXML private Label            boatFeeLabel;
-
-    // Life jacket
-//    @FXML private CheckBox         lifeJacketCheckBox;
-//    @FXML private HBox             lifeJacketBox;
-//    @FXML private Spinner<Integer> jacketSpinner;
-//    @FXML private Label            jacketFeeLabel;
-
-    // Parking
+    @FXML private RadioButton      rb1Hour, rb2Hour;
     @FXML private CheckBox    parkingCheckBox;
     @FXML private VBox        parkingBox;
     @FXML private ToggleGroup vehicleGroup;
@@ -72,11 +65,6 @@ public class BookingController implements Initializable {
         // Spinners
         peopleSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 50, 1));
         peopleSpinner.setEditable(true);
-//        jacketSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 50, 1));
-//        jacketSpinner.setEditable(true);
-
-        // Hide conditional panels
-//        lifeJacketBox.setVisible(false); lifeJacketBox.setManaged(false);
         parkingBox.setVisible(false);    parkingBox.setManaged(false);
 
         // Radio button userData
@@ -118,12 +106,6 @@ public class BookingController implements Initializable {
 
         // Fee listeners
         peopleSpinner.valueProperty().addListener((obs, o, n) -> refreshFees());
-//        lifeJacketCheckBox.selectedProperty().addListener((obs, o, selected) -> {
-//            lifeJacketBox.setVisible(selected); lifeJacketBox.setManaged(selected);
-//            if (selected) jacketSpinner.getValueFactory().setValue(peopleSpinner.getValue());
-//            refreshFees();
-//        });
-//        jacketSpinner.valueProperty().addListener((obs, o, n) -> refreshFees());
         parkingCheckBox.selectedProperty().addListener((obs, o, selected) -> {
             parkingBox.setVisible(selected); parkingBox.setManaged(selected);
             refreshFees();
@@ -152,7 +134,6 @@ public class BookingController implements Initializable {
 
     private void refreshFees() {
         int people    = safeInt(peopleSpinner, 1);
-        //int jackets   = safeInt(jacketSpinner, 1);
         int boatFee   = Ticket.BOAT_RIDE_FEE_PER_HOUR ;
         int jacketFee = Ticket.LIFE_JACKET_FEE * people;
         int parkFee   = getParkingFeeFromUI();
@@ -160,7 +141,6 @@ public class BookingController implements Initializable {
         int total     = toDriver + parkFee;
 
         boatFeeLabel.setText("Rs " + boatFee);
-//        jacketFeeLabel.setText("Rs " + jacketFee);
         parkingFeeLabel.setText("Rs " + parkFee);
         driverAmountLabel.setText("Rs " + toDriver);
         counterAmountLabel.setText("Rs " + parkFee);
@@ -229,8 +209,6 @@ public class BookingController implements Initializable {
         customerNameField.clear();
         contactNumberField.clear();
         peopleSpinner.getValueFactory().setValue(1);
-//        lifeJacketCheckBox.setSelected(false);
-//        jacketSpinner.getValueFactory().setValue(1);
         parkingCheckBox.setSelected(false);
         vehicleGroup.selectToggle(null);
         vehicleNumberField.clear();
