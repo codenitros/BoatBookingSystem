@@ -11,7 +11,7 @@
     <!-- Header -->
     <VBox styleClass="header-banner" alignment="CENTER">
         <padding><Insets top="28" bottom="28" left="20" right="20"/></padding>
-        <Label text="🚤  Boat Ticket System" styleClass="header-title"/>
+        <Label text="🚤  Sharavati Backwater Boating Honnavar Ticket System" styleClass="header-title"/>
         <Label text="Agent Login" styleClass="header-sub"/>
     </VBox>
 
@@ -37,12 +37,5 @@
 
         <Button fx:id="loginBtn" text="Login  →" styleClass="btn-primary" maxWidth="Infinity"
                 onAction="#handleLogin"/>
-
-        <VBox alignment="CENTER" style="-fx-padding: 14 0 0 0;">
-            <Label styleClass="hint-text"
-                   text="Preset accounts:  admin / agent1 / agent2 / agent3"/>
-            <Label styleClass="hint-text"
-                   text="Passwords:  admin@123 / agent1@123 / agent2@123 / agent3@123"/>
-        </VBox>
     </VBox>
 </VBox>

@@ -16,7 +16,7 @@
     <HBox styleClass="header-banner" alignment="CENTER_LEFT" spacing="0">
         <VBox HBox.hgrow="ALWAYS" alignment="CENTER">
             <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
-            <Label text="🚤 Sharavati Boat Ride Ticket Booking" styleClass="header-title"/>
+            <Label text="🚤 Sharavati Backwater Boating Honnavar Ticket Booking" styleClass="header-title"/>
             <Label text="1-Hour Scenic Ride  •  Allocate Boat &amp; Generate Ticket" styleClass="header-sub"/>
         </VBox>
         <VBox alignment="CENTER_RIGHT" spacing="6" style="-fx-padding: 0 16 0 0;">

@@ -22,10 +22,10 @@ public class MainApp extends Application {
     public static void showLogin(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(
                 MainApp.class.getResource("/com/boatticket/login.fxml"));
-        Scene scene = new Scene(loader.load(), 420, 380);
+        Scene scene = new Scene(loader.load(), 800, 400);
         scene.getStylesheets().add(
                 MainApp.class.getResource("/com/boatticket/styles.css").toExternalForm());
-        stage.setTitle("Sharavati Boat Ticket System  —  Login");
+        stage.setTitle("Sharavati Backwater Boating Honnavar Ticket Booking  —  Login");
         stage.setScene(scene);
         stage.setResizable(false);
         stage.show();
@@ -37,7 +37,7 @@ public class MainApp extends Application {
         Scene scene = new Scene(loader.load(), 860, 720);
         scene.getStylesheets().add(
                 MainApp.class.getResource("/com/boatticket/styles.css").toExternalForm());
-        stage.setTitle("Sharavati Boat Ride Ticket Booking  —  " + loggedInUser);
+        stage.setTitle("Sharavati Backwater Boating Honnavar Ticket Booking  —  " + loggedInUser);
         stage.setScene(scene);
         stage.setMinWidth(860);
         stage.setMinHeight(720);

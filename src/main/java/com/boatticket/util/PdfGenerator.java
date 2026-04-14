@@ -38,7 +38,7 @@ public class PdfGenerator {
         header.setWidthPercentage(100);
         PdfPCell hc = new PdfPCell();
         hc.setBackgroundColor(NAVY); hc.setPadding(12); hc.setBorder(Rectangle.NO_BORDER);
-        Paragraph t = new Paragraph("  SHARAVATI BOAT RIDE TICKET", TITLE_FONT);
+        Paragraph t = new Paragraph("SHARAVATI BACKWATER BOATING HONNAVAR TICKET", TITLE_FONT);
         t.setAlignment(Element.ALIGN_CENTER); hc.addElement(t);
         Paragraph sub = new Paragraph("1-Hour Scenic Boat Ride  |  Official Booking Receipt", SUB_FONT);
         sub.setAlignment(Element.ALIGN_CENTER); hc.addElement(sub);
