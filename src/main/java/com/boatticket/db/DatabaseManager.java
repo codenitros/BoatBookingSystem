@@ -69,6 +69,7 @@ public class DatabaseManager {
                 "    customer_name     TEXT NOT NULL," +
                 "    contact_number    TEXT NOT NULL," +
                 "    num_people        INTEGER NOT NULL," +
+                "    ride_duration_hour INTEGER NOT NULL DEFAULT 1," +
                 "    life_jacket       INTEGER NOT NULL DEFAULT 0," +
                 "    life_jacket_count INTEGER NOT NULL DEFAULT 0," +
                 "    parking           INTEGER NOT NULL DEFAULT 0," +
@@ -314,8 +315,8 @@ public class DatabaseManager {
              PreparedStatement ps = c.prepareStatement(
                 "INSERT INTO tickets(ticket_id,booking_time,customer_name,contact_number," +
                 "num_people,life_jacket,life_jacket_count,parking,vehicle_type,vehicle_number," +
-                "boat_id,boat_ride_fee,life_jacket_fee,parking_fee,total_fee,booked_by) " +
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+                "boat_id,boat_ride_fee,life_jacket_fee,parking_fee,total_fee,booked_by,ride_duration_hour) " +
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
             ps.setString(1, t.getTicketId());
             ps.setString(2, t.getFormattedBookingTime());
             ps.setString(3, t.getCustomerName());
@@ -332,6 +333,7 @@ public class DatabaseManager {
             ps.setInt(14, t.getParkingFee());
             ps.setInt(15, t.getParkingFee()); // payable at counter = parking only
             ps.setString(16, bookedBy);
+            ps.setInt(17, t.getRideDurationInHour());
             ps.executeUpdate();
         }
     }

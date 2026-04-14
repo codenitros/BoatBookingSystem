@@ -24,13 +24,14 @@ public class Ticket {
     private String      vehicleNumber;
     private BoatOwner   boatOwner;
     private String      bookedBy;
+    private int         rideDurationInHour;
 
     public Ticket() {
         this.ticketId    = "BT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         this.bookingTime = LocalDateTime.now();
     }
 
-    public int getBoatRideFee() { return BOAT_RIDE_FEE_PER_HOUR ; }
+    public int getBoatRideFee() { return BOAT_RIDE_FEE_PER_HOUR * rideDurationInHour; }
 
     public int getLifeJacketFee() {
         return lifeJacketRequired ? LIFE_JACKET_FEE * lifeJacketCount : 0;
@@ -84,6 +85,8 @@ public class Ticket {
     public void        setBoatOwner(BoatOwner v)  { boatOwner = v; }
     public String      getBookedBy()              { return bookedBy; }
     public void        setBookedBy(String v)      { bookedBy = v; }
+    public int getRideDurationInHour()            { return rideDurationInHour;}
+    public void setRideDurationInHour(int rideDurationInHour) {this.rideDurationInHour = rideDurationInHour;}
 
     public enum VehicleType { CAR, BUS, TEMPOTRAVELLER }
 }

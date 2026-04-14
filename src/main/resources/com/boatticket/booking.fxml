@@ -10,6 +10,7 @@
 
     <fx:define>
         <ToggleGroup fx:id="vehicleGroup"/>
+        <ToggleGroup fx:id="durationGroup"/>
     </fx:define>
 
     <!-- Top bar: header + logged-in info + toolbar -->
@@ -71,30 +72,18 @@
                         <ColumnConstraints percentWidth="30"/>
                         <ColumnConstraints percentWidth="30"/>
                     </columnConstraints>
-                    <Label text="Passengers"          styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-                    <Label text="Duration"             styleClass="field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                    <Label text="Passengers" styleClass="field-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <Label text="Duration" styleClass="field-label" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
                     <Label fx:id="boatFeeLabel" text="Rs 1500" styleClass="fee-label"
                            GridPane.columnIndex="2" GridPane.rowIndex="1"/>
                     <Spinner fx:id="peopleSpinner" styleClass="input-field" prefWidth="160"
                              GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                    <Label text="🕐 1 Hour (Preset)" styleClass="preset-tag"
-                           GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <RadioButton fx:id="rb1Hour" text="1 Hour" styleClass="vehicle-radio" toggleGroup="$durationGroup"/>
+                        <RadioButton fx:id="rb2Hour" text="2 Hours" styleClass="vehicle-radio" toggleGroup="$durationGroup"/>
+                    </HBox>
                 </GridPane>
             </VBox>
-
-            <!-- Life Jacket -->
-<!--            <VBox styleClass="card">-->
-<!--                <CheckBox fx:id="lifeJacketCheckBox"-->
-<!--                          text="Require Life Jackets  (Rs 10 per jacket)"-->
-<!--                          styleClass="check-main"/>-->
-<!--                <HBox fx:id="lifeJacketBox" spacing="20" alignment="CENTER_LEFT"-->
-<!--                      style="-fx-padding: 10 0 0 24;">-->
-<!--                    <Label text="Number of Jackets:" styleClass="field-label"/>-->
-<!--                    <Spinner fx:id="jacketSpinner" prefWidth="120" styleClass="input-field"/>-->
-<!--                    <Label text="Jacket Fee:" styleClass="field-label"/>-->
-<!--                    <Label fx:id="jacketFeeLabel" text="Rs 0" styleClass="fee-label"/>-->
-<!--                </HBox>-->
-<!--            </VBox>-->
 
             <!-- Parking -->
             <VBox styleClass="card">

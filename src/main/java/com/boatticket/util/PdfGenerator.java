@@ -83,7 +83,7 @@ public class PdfGenerator {
         PdfPTable rideT = new PdfPTable(2);
         rideT.setWidthPercentage(100); rideT.setWidths(new float[]{1f, 1f});
         addInfoCell(rideT, "Passengers",    String.valueOf(ticket.getNumberOfPeople()), VALUE_FONT, WHITE);
-        addInfoCell(rideT, "Ride Duration", "1 Hour (Preset)", VALUE_FONT, WHITE);
+        addInfoCell(rideT, "Ride Duration", String.valueOf(ticket.getRideDurationInHour()), VALUE_FONT, WHITE);
         addInfoCell(rideT, "Life Jackets",
                 ticket.isLifeJacketRequired() ? ticket.getLifeJacketCount() + " jacket(s)" : "Not Required",
                 VALUE_FONT, DARK_ROW);
@@ -101,7 +101,7 @@ public class PdfGenerator {
         addSectionHeader(doc, "FEE BREAKDOWN");
         PdfPTable feeT = new PdfPTable(2);
         feeT.setWidthPercentage(100); feeT.setWidths(new float[]{2.2f, 1f});
-        addFeeRow(feeT, "Boat Ride  (" + "  Rs " + Ticket.BOAT_RIDE_FEE_PER_HOUR + ")",
+        addFeeRow(feeT, "Boat Ride  (" + ticket.getRideDurationInHour() + " x Rs " + Ticket.BOAT_RIDE_FEE_PER_HOUR + ")",
                 "Rs " + ticket.getBoatRideFee(), false);
         if (ticket.isLifeJacketRequired())
             addFeeRow(feeT, "Life Jacket  (" + ticket.getLifeJacketCount() + " x Rs " + Ticket.LIFE_JACKET_FEE + ")",

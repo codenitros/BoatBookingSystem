@@ -58,6 +58,8 @@ public class BookingController implements Initializable {
 
     private ObservableList<BoatOwner> allBoats = FXCollections.observableArrayList();
 
+    private ToggleGroup durationGroup;
+
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         loggedInLabel.setText("Logged in as:  " + MainApp.loggedInUser + "  [" + MainApp.loggedInRole + "]");
@@ -71,6 +73,14 @@ public class BookingController implements Initializable {
         rbCar.setUserData(Ticket.VehicleType.CAR);
         rbBus.setUserData(Ticket.VehicleType.BUS);
         rbTempo.setUserData(Ticket.VehicleType.TEMPOTRAVELLER);
+
+        // Duration group
+        durationGroup = new ToggleGroup();
+        rb1Hour.setToggleGroup(durationGroup);
+        rb2Hour.setToggleGroup(durationGroup);
+        rb1Hour.setUserData(1);
+        rb2Hour.setUserData(2);
+        rb1Hour.setSelected(true);
 
         // Load boats into ComboBox
         loadBoats();
@@ -106,6 +116,7 @@ public class BookingController implements Initializable {
 
         // Fee listeners
         peopleSpinner.valueProperty().addListener((obs, o, n) -> refreshFees());
+        durationGroup.selectedToggleProperty().addListener((obs, o, n) -> refreshFees());
         parkingCheckBox.selectedProperty().addListener((obs, o, selected) -> {
             parkingBox.setVisible(selected); parkingBox.setManaged(selected);
             refreshFees();
@@ -134,7 +145,8 @@ public class BookingController implements Initializable {
 
     private void refreshFees() {
         int people    = safeInt(peopleSpinner, 1);
-        int boatFee   = Ticket.BOAT_RIDE_FEE_PER_HOUR ;
+        int duration  = getDurationFromUI();
+        int boatFee   = Ticket.BOAT_RIDE_FEE_PER_HOUR * duration;
         int jacketFee = Ticket.LIFE_JACKET_FEE * people;
         int parkFee   = getParkingFeeFromUI();
         int toDriver  = boatFee + jacketFee;
@@ -160,6 +172,13 @@ public class BookingController implements Initializable {
         };
     }
 
+    private int getDurationFromUI() {
+        Toggle t = durationGroup.getSelectedToggle();
+        if (t == null) return 1;
+        Integer duration = (Integer) t.getUserData();
+        return (duration != null) ? duration : 1;
+    }
+
     @FXML
     private void handleGenerateTicket() {
         if (!validateForm()) return;
@@ -170,6 +189,7 @@ public class BookingController implements Initializable {
         ticket.setNumberOfPeople(safeInt(peopleSpinner, 1));
         ticket.setLifeJacketRequired(true);
         ticket.setLifeJacketCount(safeInt(peopleSpinner, 1));
+        ticket.setRideDurationInHour(getDurationFromUI());;
         ticket.setParkingRequired(parkingCheckBox.isSelected());
         if (parkingCheckBox.isSelected() && vehicleGroup.getSelectedToggle() != null) {
             ticket.setVehicleType((Ticket.VehicleType) vehicleGroup.getSelectedToggle().getUserData());
@@ -209,6 +229,7 @@ public class BookingController implements Initializable {
         customerNameField.clear();
         contactNumberField.clear();
         peopleSpinner.getValueFactory().setValue(1);
+        rb1Hour.setSelected(true);
         parkingCheckBox.setSelected(false);
         vehicleGroup.selectToggle(null);
         vehicleNumberField.clear();
