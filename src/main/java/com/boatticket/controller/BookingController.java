@@ -41,7 +41,7 @@ public class BookingController implements Initializable {
     @FXML private CheckBox    parkingCheckBox;
     @FXML private VBox        parkingBox;
     @FXML private ToggleGroup vehicleGroup;
-    @FXML private RadioButton rbTwoWheeler, rbCar, rbBus, rbTruck;
+    @FXML private RadioButton rbCar, rbBus, rbTempo;
     @FXML private TextField   vehicleNumberField;
     @FXML private Label       parkingFeeLabel;
 
@@ -80,10 +80,9 @@ public class BookingController implements Initializable {
         parkingBox.setVisible(false);    parkingBox.setManaged(false);
 
         // Radio button userData
-        rbTwoWheeler.setUserData(Ticket.VehicleType.TWO_WHEELER);
         rbCar.setUserData(Ticket.VehicleType.CAR);
         rbBus.setUserData(Ticket.VehicleType.BUS);
-        rbTruck.setUserData(Ticket.VehicleType.TRUCK);
+        rbTempo.setUserData(Ticket.VehicleType.TEMPOTRAVELLER);
 
         // Load boats into ComboBox
         loadBoats();
@@ -175,11 +174,9 @@ public class BookingController implements Initializable {
         Ticket.VehicleType vt = (Ticket.VehicleType) t.getUserData();
         if (vt == null) return 0;
         return switch (vt) {
-            case TWO_WHEELER -> Ticket.PARKING_FEE_TWO_WHEELER;
             case CAR         -> Ticket.PARKING_FEE_CAR;
-            case AUTO        -> Ticket.PARKING_FEE_AUTO;
             case BUS         -> Ticket.PARKING_FEE_BUS;
-            case TRUCK       -> Ticket.PARKING_FEE_TRUCK;
+            case TEMPOTRAVELLER  -> Ticket.PARKING_FEE_TEMPOTRAVELLER;
         };
     }
 

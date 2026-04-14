@@ -8,11 +8,9 @@ public class Ticket {
 
     public static final int BOAT_RIDE_FEE_PER_HOUR = 1600;
     public static final int LIFE_JACKET_FEE           = 10;
-    public static final int PARKING_FEE_TWO_WHEELER   = 10;
     public static final int PARKING_FEE_CAR            = 20;
-    public static final int PARKING_FEE_AUTO           = 15;
     public static final int PARKING_FEE_BUS             = 40;
-    public static final int PARKING_FEE_TRUCK           = 50;
+    public static final int PARKING_FEE_TEMPOTRAVELLER   = 35;
 
     private final String        ticketId;
     private final LocalDateTime bookingTime;
@@ -41,11 +39,9 @@ public class Ticket {
     public int getParkingFee() {
         if (!parkingRequired || vehicleType == null) return 0;
         return switch (vehicleType) {
-            case TWO_WHEELER -> PARKING_FEE_TWO_WHEELER;
             case CAR         -> PARKING_FEE_CAR;
-            case AUTO        -> PARKING_FEE_AUTO;
             case BUS         -> PARKING_FEE_BUS;
-            case TRUCK       -> PARKING_FEE_TRUCK;
+            case TEMPOTRAVELLER  -> PARKING_FEE_TEMPOTRAVELLER;
         };
     }
 
@@ -60,8 +56,9 @@ public class Ticket {
     public String getVehicleTypeDisplay() {
         if (vehicleType == null) return "-";
         return switch (vehicleType) {
-            case TWO_WHEELER -> "Two-Wheeler"; case CAR -> "Car";
-            case AUTO -> "Auto-Rickshaw";      case BUS -> "Bus"; case TRUCK -> "Truck";
+            case CAR -> "Car";
+            case BUS -> "Bus";
+            case TEMPOTRAVELLER -> "Tempo Traveller";
         };
     }
 
@@ -88,5 +85,5 @@ public class Ticket {
     public String      getBookedBy()              { return bookedBy; }
     public void        setBookedBy(String v)      { bookedBy = v; }
 
-    public enum VehicleType { TWO_WHEELER, CAR, AUTO, BUS, TRUCK }
+    public enum VehicleType { CAR, BUS, TEMPOTRAVELLER }
 }

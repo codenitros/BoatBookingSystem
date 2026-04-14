@@ -1,0 +1,49 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.maven.metadata.xml
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Logs
+*.log
+logs/
+
+# Build
+build/
+bin/
+out/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.sublime-project
+*.sublime-workspace
+

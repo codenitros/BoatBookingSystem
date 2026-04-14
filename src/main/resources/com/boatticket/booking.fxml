@@ -102,12 +102,9 @@
                 <VBox fx:id="parkingBox" spacing="10" style="-fx-padding: 10 0 0 24;">
                     <Label text="Select Vehicle Type:" styleClass="field-label"/>
                     <HBox spacing="10" alignment="CENTER_LEFT">
-                        <RadioButton fx:id="rbTwoWheeler" text="Two-Wheeler (Rs 10)" styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
-                        <RadioButton fx:id="rbCar"        text="Car (Rs 20)"         styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
-                    </HBox>
-                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <RadioButton fx:id="rbCar"        text="Car (Rs 20)"  styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
+                        <RadioButton fx:id="rbTempo" text="Tempo Traveller (Rs 35)" styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
                         <RadioButton fx:id="rbBus"   text="Bus (Rs 40)"   styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
-                        <RadioButton fx:id="rbTruck" text="Tempo Traveller (Rs 50)" styleClass="vehicle-radio" toggleGroup="$vehicleGroup"/>
                     </HBox>
                     <HBox spacing="16" alignment="CENTER_LEFT">
                         <Label text="Vehicle Number (optional):" styleClass="field-label"/>
