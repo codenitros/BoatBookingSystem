@@ -56,20 +56,24 @@ Go to: **Run → Edit Configurations → VM Options**
 ```
 BoatTicketSystem/
 ├── pom.xml                          ← Maven dependencies
-├── src/main/
-│   ├── java/
-│   │   ├── module-info.java         ← Java module descriptor
-│   │   └── com/boatticket/
-│   │       ├── MainApp.java         ← Entry point
-│   │       ├── controller/
-│   │       │   └── BookingController.java  ← UI logic
-│   │       ├── model/
-│   │       │   └── Ticket.java      ← Data model + fee constants
-│   │       └── util/
-│   │           └── PdfGenerator.java  ← iText PDF generation
-│   └── resources/com/boatticket/
-│       ├── booking.fxml             ← UI layout
-│       └── styles.css               ← Styling
+├── build-exe.bat                    ← Build script for creating executable
+├── src/
+│   ├── assembly/
+│   │   └── distribution.xml         ← Assembly descriptor for packaging
+│   └── main/
+│       ├── java/
+│       │   ├── module-info.java     ← Java module descriptor
+│       │   └── com/boatticket/
+│       │       ├── MainApp.java     ← Entry point
+│       │       ├── controller/
+│       │       │   └── BookingController.java  ← UI logic
+│       │       ├── model/
+│       │       │   └── Ticket.java  ← Data model + fee constants
+│       │       └── util/
+│       │           └── PdfGenerator.java  ← iText PDF generation
+│       └── resources/com/boatticket/
+│           ├── booking.fxml         ← UI layout
+│           └── styles.css           ← Styling
 └── .idea/runConfigurations/         ← Pre-built IntelliJ run config
 ```
 
@@ -125,4 +129,81 @@ The PDF includes:
 ```bash
 mvn clean package
 java -jar target/BoatTicketSystem-1.0-SNAPSHOT.jar
+```
+
+---
+
+## 🚀 Creating a Self-Contained Executable (Windows .exe)
+
+This project is configured to create a self-contained executable that bundles all dependencies into a single JAR file and wraps it in a Windows executable.
+
+### Build the distributable package:
+
+**Option 1: Using the build script (recommended):**
+```bash
+# Double-click build-exe.bat or run:
+build-exe.bat
+```
+
+**Option 2: Using Maven directly:**
+```bash
+mvn clean package
+```
+
+This will create:
+- `target/BoatTicketSystem-2.0-SNAPSHOT.jar` - Fat JAR with all dependencies
+- `target/BoatTicketSystem.exe` - Windows executable
+- `target/BoatTicketSystem-2.0-SNAPSHOT-distribution.zip` - Complete distribution package
+
+### What's included in the distribution:
+
+- **Fat JAR** (created with Maven Shade) - Contains all dependencies (~25-35MB)
+- **Windows executable** (`.exe`) launcher created with Launch4j
+- **Batch file** launcher (`.bat`) as alternative
+- **README** and documentation
+
+### Running the application:
+
+1. Extract the `BoatTicketSystem-2.0-SNAPSHOT-distribution.zip` file
+2. Double-click `BoatTicketSystem.exe` or run `BoatTicketSystem.bat`
+3. The application will start (requires Java 17+ on target machine)
+
+### System Requirements for the executable:
+
+- **Windows 7 SP1 or later** (64-bit recommended)
+- **Java 17+** must be installed on the target machine
+- **~30-40MB** free disk space for the extracted distribution
+
+### How it works:
+
+1. **Maven Shade Plugin** creates a fat JAR containing all dependencies
+2. **Launch4j** wraps the JAR into a Windows executable with proper JRE detection
+3. **Maven Assembly** packages everything into a distributable zip file
+
+---
+
+## 🔧 Advanced Build Options
+
+### Build only the fat JAR (without exe):
+
+```bash
+mvn clean package -DskipTests
+```
+
+### Build only the executable (requires JAR to be built first):
+
+```bash
+mvn launch4j:launch4j
+```
+
+### Build only the distribution zip:
+
+```bash
+mvn assembly:single
+```
+
+### Run the application during development:
+
+```bash
+mvn javafx:run
 ```

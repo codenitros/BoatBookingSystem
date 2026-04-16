@@ -4,7 +4,12 @@ import com.boatticket.db.DatabaseManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
+
+import java.awt.*;
+import java.awt.image.ImageObserver;
+import java.awt.image.ImageProducer;
 
 public class MainApp extends Application {
 
@@ -15,7 +20,8 @@ public class MainApp extends Application {
     public void start(Stage primaryStage) throws Exception {
         // Initialise DB on startup
         DatabaseManager.getInstance();
-
+        Image image = new Image("icons8-boat-48.png");
+        primaryStage.getIcons().add(image);
         showLogin(primaryStage);
     }
 

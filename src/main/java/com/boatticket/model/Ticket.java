@@ -25,6 +25,9 @@ public class Ticket {
     private BoatOwner   boatOwner;
     private String      bookedBy;
     private int         rideDurationInHour;
+    private String    boatHRNumber;
+    private String    boatHONumber;
+    private String    jetty;
 
     public Ticket() {
         this.ticketId    = "BT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -87,6 +90,12 @@ public class Ticket {
     public void        setBookedBy(String v)      { bookedBy = v; }
     public int getRideDurationInHour()            { return rideDurationInHour;}
     public void setRideDurationInHour(int rideDurationInHour) {this.rideDurationInHour = rideDurationInHour;}
+    public String getBoatHRNumber() { return boatHRNumber;}
+    public void setBoatHRNumber(String boatHRNumber) { this.boatHRNumber = boatHRNumber; }
+    public String getBoatHONumber() { return boatHONumber; }
+    public void setBoatHONumber(String boatHONumber) { this.boatHONumber = boatHONumber;}
+    public String getJetty() { return jetty;}
+    public void setJetty(String jetty) {this.jetty = jetty;}
 
     public enum VehicleType { CAR, BUS, TEMPOTRAVELLER }
 }

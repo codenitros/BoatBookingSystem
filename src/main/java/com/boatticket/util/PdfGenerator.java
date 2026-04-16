@@ -40,7 +40,7 @@ public class PdfGenerator {
         hc.setBackgroundColor(NAVY); hc.setPadding(12); hc.setBorder(Rectangle.NO_BORDER);
         Paragraph t = new Paragraph("SHARAVATI BACKWATER BOATING HONNAVAR TICKET", TITLE_FONT);
         t.setAlignment(Element.ALIGN_CENTER); hc.addElement(t);
-        Paragraph sub = new Paragraph("1-Hour Scenic Boat Ride  |  Official Booking Receipt", SUB_FONT);
+        Paragraph sub = new Paragraph("Scenic Boat Ride  |  Official Booking Receipt", SUB_FONT);
         sub.setAlignment(Element.ALIGN_CENTER); hc.addElement(sub);
         header.addCell(hc);
         doc.add(header);
@@ -69,8 +69,9 @@ public class PdfGenerator {
         boatT.setWidthPercentage(100); boatT.setWidths(new float[]{1f, 1f});
         if (ticket.getBoatOwner() != null) {
             addInfoCell(boatT, "Driver Name",    ticket.getBoatOwner().getDriverName(), DRIVER_FONT, DARK_ROW);
-            addInfoCell(boatT, "Boat Name",      ticket.getBoatOwner().getBoatName(),   DRIVER_FONT, DARK_ROW);
-            addInfoCell(boatT, "Boat Number",    ticket.getBoatOwner().getBoatNumber(), VALUE_FONT,  WHITE);
+            addInfoCell(boatT, "Boat HR Number",      ticket.getBoatOwner().getBoatHRNumber(),   DRIVER_FONT, DARK_ROW);
+            addInfoCell(boatT, "Boat HON Number",    ticket.getBoatOwner().getBoatHONumber(), VALUE_FONT,  WHITE);
+            addInfoCell(boatT, "Jetty",    ticket.getBoatOwner().getJetty(), VALUE_FONT,  WHITE);
             addInfoCell(boatT, "Capacity",       ticket.getBoatOwner().getCapacity() + " persons", VALUE_FONT, WHITE);
             addInfoCell(boatT, "Driver Contact", ticket.getBoatOwner().getContact(),   VALUE_FONT,  DARK_ROW);
             addInfoCell(boatT, "Booked By",      ticket.getBookedBy() != null ? ticket.getBookedBy() : "-", VALUE_FONT, DARK_ROW);
@@ -139,21 +140,19 @@ public class PdfGenerator {
         doc.add(Chunk.NEWLINE);
 
         // Barcode
-        Barcode128 barcode = new Barcode128();
-        barcode.setCode(ticket.getTicketId());
-        barcode.setBarHeight(28f); barcode.setX(1.4f);
-        PdfContentByte cb = writer.getDirectContent();
-        Image barcodeImage = barcode.createImageWithBarcode(cb, NAVY, NAVY);
-        barcodeImage.setAlignment(Element.ALIGN_CENTER);
-        barcodeImage.scalePercent(90);
-        doc.add(barcodeImage);
-        doc.add(Chunk.NEWLINE);
+//        Barcode128 barcode = new Barcode128();
+//        barcode.setCode(ticket.getTicketId());
+//        barcode.setBarHeight(28f); barcode.setX(1.4f);
+//        PdfContentByte cb = writer.getDirectContent();
+//        Image barcodeImage = barcode.createImageWithBarcode(cb, NAVY, NAVY);
+//        barcodeImage.setAlignment(Element.ALIGN_CENTER);
+//        barcodeImage.scalePercent(90);
+//        doc.add(barcodeImage);
+//        doc.add(Chunk.NEWLINE);
 
         // Footer
         Paragraph footer = new Paragraph(
-                "Thank you for choosing our Sharavati Boat Ride Service!\n" +
-                "Please arrive 10 minutes before your scheduled ride.\n" +
-                "Life jackets are mandatory for all passengers under 12 years.", FOOTER_FONT);
+                "Thank you for choosing our Sharavati Boat Ride Service!", FOOTER_FONT);
         footer.setAlignment(Element.ALIGN_CENTER);
         doc.add(footer);
         doc.close();

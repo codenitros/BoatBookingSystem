@@ -91,8 +91,10 @@ public class BookingController implements Initializable {
             ObservableList<BoatOwner> filtered = FXCollections.observableArrayList();
             for (BoatOwner b : allBoats) {
                 if (b.getDriverName().toLowerCase().contains(lower)
-                        || b.getBoatName().toLowerCase().contains(lower)
-                        || b.getBoatNumber().toLowerCase().contains(lower)) {
+                        || b.getBoatHRNumber().toLowerCase().contains(lower)
+                        || b.getBoatHONumber().toLowerCase().contains(lower)
+                        || b.getJetty().toLowerCase().contains(lower)
+                        || String.valueOf(b.getCapacity()).contains(lower)) {
                     filtered.add(b);
                 }
             }
@@ -104,9 +106,11 @@ public class BookingController implements Initializable {
             BoatOwner sel = boatComboBox.getValue();
             if (sel != null) {
                 boatDetailsLabel.setText(
-                        "Driver: " + sel.getDriverName() +
-                        "  |  Boat: " + sel.getBoatName() +
-                        " (" + sel.getBoatNumber() + ")" +
+                        "Number: " + sel.getId() +
+                        "  | Driver: " + sel.getDriverName() +
+                        "  |  Boat HR Number: " + sel.getBoatHRNumber() +
+                        "  |  Boat HON Number: " + sel.getBoatHONumber() +
+                        "  |  Jetty: " + sel.getJetty() +
                         "  |  Capacity: " + sel.getCapacity() +
                         "  |  Contact: " + sel.getContact());
             } else {
@@ -132,8 +136,9 @@ public class BookingController implements Initializable {
                 allBoats.add(new BoatOwner(
                         rs.getInt("id"),
                         rs.getString("driver_name"),
-                        rs.getString("boat_name"),
-                        rs.getString("boat_number"),
+                        rs.getString("boat_hr_number"),
+                        rs.getString("boat_hon_number"),
+                        rs.getString("jetty"),
                         rs.getInt("capacity"),
                         rs.getString("contact")));
             }

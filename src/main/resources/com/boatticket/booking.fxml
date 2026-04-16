@@ -18,7 +18,7 @@
         <VBox HBox.hgrow="ALWAYS" alignment="CENTER">
             <padding><Insets top="14" bottom="14" left="20" right="20"/></padding>
             <Label text="🚤 Sharavati Backwater Boating Honnavar Ticket Booking" styleClass="header-title"/>
-            <Label text="1-Hour Scenic Ride  •  Allocate Boat &amp; Generate Ticket" styleClass="header-sub"/>
+            <Label text="Scenic Boat Ride  •  Allocate Boat &amp; Generate Ticket" styleClass="header-sub"/>
         </VBox>
         <VBox alignment="CENTER_RIGHT" spacing="6" style="-fx-padding: 0 16 0 0;">
             <Label fx:id="loggedInLabel" style="-fx-text-fill: #cce5ff; -fx-font-size: 11px;"/>
@@ -145,7 +145,7 @@
             </HBox>
 
             <Label styleClass="hint-text"
-                   text="ℹ️  DB stored at ~/BoatTicketSystem/tickets.db  |  Use Backup button to export a copy anytime."
+                   text="Use Backup button to export a copy anytime."
                    wrapText="true"/>
             <VBox style="-fx-padding:0 0 10 0;"/>
         </VBox>
