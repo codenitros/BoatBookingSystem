@@ -23,6 +23,7 @@
         <VBox alignment="CENTER_RIGHT" spacing="6" style="-fx-padding: 0 16 0 0;">
             <Label fx:id="loggedInLabel" style="-fx-text-fill: #cce5ff; -fx-font-size: 11px;"/>
             <HBox spacing="8">
+                <Button fx:id="viewTicketsBtn" text="📋 View Today's Tickets" styleClass="btn-toolbar" onAction="#handleViewTickets"/>
                 <Button fx:id="backupBtn" text="💾 Backup DB" styleClass="btn-toolbar" onAction="#handleBackup"/>
                 <Button fx:id="logoutBtn" text="🔓 Logout"   styleClass="btn-toolbar" onAction="#handleLogout"/>
             </HBox>

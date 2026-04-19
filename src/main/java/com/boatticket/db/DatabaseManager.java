@@ -7,6 +7,8 @@ import java.nio.file.*;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SQLite database manager.
@@ -208,4 +210,27 @@ public class DatabaseManager {
     }
 
     public String getDbPath() { return DB_PATH; }
+
+    // ── Ticket queries ─────────────────────────────────────────────────────────
+    public List<String> getTodaysTickets() throws SQLException {
+        List<String> tickets = new ArrayList<>();
+        String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        try (Connection c = getConnection();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT b.id, t.booking_time, b.driver_name " +
+                     "FROM tickets t LEFT JOIN boats b ON t.boat_id = b.id " +
+                     "WHERE t.booking_time LIKE ? ORDER BY t.booking_time DESC")) {
+            ps.setString(1, today + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String info = String.format("%s | %s | Driver: %s",
+                            rs.getString("id"),
+                            rs.getString("booking_time"),
+                            rs.getString("driver_name"));
+                    tickets.add(info);
+                }
+            }
+        }
+        return tickets;
+    }
 }

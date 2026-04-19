@@ -11,14 +11,19 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.File;
 import java.net.URL;
 import java.sql.ResultSet;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class BookingController implements Initializable {
@@ -54,6 +59,7 @@ public class BookingController implements Initializable {
     @FXML private Button generateBtn;
     @FXML private Button resetBtn;
     @FXML private Button backupBtn;
+    @FXML private Button viewTicketsBtn;
     @FXML private Button logoutBtn;
 
     private ObservableList<BoatOwner> allBoats = FXCollections.observableArrayList();
@@ -270,13 +276,54 @@ public class BookingController implements Initializable {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
+    @FXML
+    private void handleViewTickets() {
+        try {
+            List<String> tickets = DatabaseManager.getInstance().getTodaysTickets();
+            if (tickets.isEmpty()) {
+                showStatus("No tickets issued today.", false);
+                return;
+            }
+            // Create new stage
+            Stage stage = new Stage();
+            stage.setTitle("Today's Tickets");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initOwner(viewTicketsBtn.getScene().getWindow());
+
+            VBox vbox = new VBox(10);
+            vbox.setPadding(new Insets(10));
+
+            Label label = new Label("Tickets issued today:");
+
+            TextArea textArea = new TextArea(String.join("\n", tickets));
+            textArea.setEditable(false);
+            textArea.setPrefRowCount(20);
+
+            Button closeBtn = new Button("Close");
+            closeBtn.setOnAction(e -> stage.close());
+
+            vbox.getChildren().addAll(label, textArea, closeBtn);
+
+            Scene scene = new Scene(vbox, 600, 400);
+            stage.setScene(scene);
+            stage.showAndWait();
+        } catch (Exception e) {
+            showStatus("Error fetching tickets: " + e.getMessage(), false);
+        }
+    }
+
     private boolean validateForm() {
         if (customerNameField.getText().isBlank()) {
             showStatus("Please enter customer name.", false);
             customerNameField.requestFocus(); return false;
         }
-        if (contactNumberField.getText().isBlank()) {
+        String phone = contactNumberField.getText().trim();
+        if (phone.isBlank()) {
             showStatus("Please enter contact number.", false);
+            contactNumberField.requestFocus(); return false;
+        }
+        if (!phone.matches("\\d{10}")) {
+            showStatus("Please enter a valid 10-digit contact number.", false);
             contactNumberField.requestFocus(); return false;
         }
         if (boatComboBox.getValue() == null) {
