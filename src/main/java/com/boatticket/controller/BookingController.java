@@ -255,15 +255,15 @@ public class BookingController implements Initializable {
     @FXML
     private void handleBackup() {
         DirectoryChooser dc = new DirectoryChooser();
-        dc.setTitle("Choose backup destination folder");
+        dc.setTitle("Choose folder to export Excel file");
         dc.setInitialDirectory(new File(System.getProperty("user.home")));
         File dir = dc.showDialog(backupBtn.getScene().getWindow());
         if (dir == null) return;
         try {
-            DatabaseManager.getInstance().backup(dir.getAbsolutePath());
-            showStatus("Backup saved to: " + dir.getAbsolutePath(), true);
+            DatabaseManager.getInstance().exportToExcel(dir.getAbsolutePath());
+            showStatus("Excel exported to: " + dir.getAbsolutePath(), true);
         } catch (Exception e) {
-            showStatus("❌  Backup failed: " + e.getMessage(), false);
+            showStatus("❌  Export failed: " + e.getMessage(), false);
         }
     }
 

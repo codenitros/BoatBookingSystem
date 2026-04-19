@@ -1,5 +1,7 @@
 package com.boatticket.db;
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.*;
@@ -201,12 +203,65 @@ public class DatabaseManager {
         }
     }
 
-    // ── Backup ────────────────────────────────────────────────────────────────
-    public void backup(String destinationDir) throws IOException {
+    // ── Export to Excel ────────────────────────────────────────────────────────
+    public void exportToExcel(String destinationDir) throws IOException, SQLException {
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        Path src  = Path.of(DB_PATH);
-        Path dest = Path.of(destinationDir, "tickets_backup_" + ts + ".db");
-        Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+        String fileName = "tickets_export_" + ts + ".xlsx";
+        Path filePath = Path.of(destinationDir, fileName);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Tickets");
+
+            // Header row
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Ticket ID", "Booking Time", "Customer Name", "Contact Number", "Number of People", "Duration (Hours)", "Total Fee", "Driver Name", "Parking Fee"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            // Data rows
+            try (Connection c = getConnection();
+                 PreparedStatement ps = c.prepareStatement(
+                         "SELECT t.ticket_id, t.booking_time, t.customer_name, t.contact_number, t.num_people, t.ride_duration_hour, t.total_fee, b.driver_name, t.parking_fee " +
+                         "FROM tickets t LEFT JOIN boats b ON t.boat_id = b.id ORDER BY t.booking_time DESC");
+                 ResultSet rs = ps.executeQuery()) {
+
+                int rowNum = 1;
+                while (rs.next()) {
+                    Row row = sheet.createRow(rowNum++);
+                    row.createCell(0).setCellValue(rs.getString("ticket_id"));
+                    row.createCell(1).setCellValue(rs.getString("booking_time"));
+                    row.createCell(2).setCellValue(rs.getString("customer_name"));
+                    row.createCell(3).setCellValue(rs.getString("contact_number"));
+                    row.createCell(4).setCellValue(rs.getInt("num_people"));
+                    row.createCell(5).setCellValue(rs.getInt("ride_duration_hour"));
+                    row.createCell(6).setCellValue(rs.getInt("total_fee"));
+                    row.createCell(7).setCellValue(rs.getString("driver_name"));
+                    row.createCell(8).setCellValue(rs.getInt("parking_fee"));
+                }
+
+                // Total counter collection
+                Row totalRow = sheet.createRow(rowNum + 1);
+                totalRow.createCell(0).setCellValue("Total Money Collected at Counter:");
+                try (PreparedStatement psTotal = c.prepareStatement("SELECT SUM(parking_fee) AS total FROM tickets");
+                     ResultSet rsTotal = psTotal.executeQuery()) {
+                    if (rsTotal.next()) {
+                        totalRow.createCell(1).setCellValue(rsTotal.getInt("total"));
+                    }
+                }
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Write to file
+            try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
+                workbook.write(fos);
+            }
+        }
     }
 
     public String getDbPath() { return DB_PATH; }

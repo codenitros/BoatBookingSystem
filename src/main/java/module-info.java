@@ -6,6 +6,8 @@ module com.boatticket {
     requires itextpdf;
     requires org.xerial.sqlitejdbc;
     requires jbcrypt;
+    requires org.apache.poi.poi;
+    requires org.apache.poi.ooxml;
 
     opens com.boatticket to javafx.fxml;
     opens com.boatticket.controller to javafx.fxml;
