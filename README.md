@@ -1,6 +1,6 @@
-# 🚤 Boat Ride Ticket Booking System
+# 🚤 Sharavati Backwater Boating Honnavar Ticket Booking System
 
-A JavaFX 17 desktop application for booking boat ride tickets, with PDF generation.
+A JavaFX 17 desktop application for booking boat ride tickets at Sharavati Backwater Boating Honnavar, with thermal printing, database storage, and Excel export.
 
 ---
 
@@ -8,14 +8,20 @@ A JavaFX 17 desktop application for booking boat ride tickets, with PDF generati
 
 | Feature | Details |
 |---|---|
-| Customer Details | Name + Contact Number |
+| User Authentication | Login with username/password and role-based access |
+| Customer Details | Name + 10-digit Contact Number |
 | Passenger Count | Spinner (1–50 people) |
-| Boat Ride Fee | ₹400 per person (1-hour ride, preset) |
-| Life Jackets | Optional checkbox, ₹10 per jacket |
-| Parking | Optional checkbox with 5 vehicle types |
-| Vehicle Types | Two-Wheeler ₹10 · Car ₹20 · Auto ₹15 · Bus ₹40 · Truck ₹50 |
-| Live Fee Calc | Total updates instantly as you fill the form |
-| PDF Ticket | Professional A5 ticket with barcode, saved to your chosen folder |
+| Ride Duration | Radio buttons: 1 Hour (₹1500) or 2 Hours (₹2500) |
+| Life Jackets | Mandatory, ₹10 per person |
+| Parking | Optional checkbox with vehicle types |
+| Vehicle Types | Car ₹20 · Bus ₹50 · Tempo Traveller ₹35 |
+| Boat Assignment | Search and select from registered boats/drivers |
+| Live Fee Calc | Total, Driver Amount, Counter Amount update instantly |
+| Thermal Printing | Direct print to thermal printer + console preview |
+| Database Storage | SQLite for ticket and boat data |
+| Excel Export | Backup tickets to Excel file |
+| View Tickets | List today's issued tickets |
+| Fee Split | Driver: Boat + Jackets; Counter: Parking |
 
 ---
 
@@ -36,12 +42,14 @@ File → Open → select the BoatTicketSystem folder
 IntelliJ will auto-detect the `pom.xml` and import dependencies.
 
 ### 2. Wait for Maven to download dependencies
-The first run downloads JavaFX 17 and iText PDF (~5 MB total).
+The first run downloads JavaFX 17, SQLite JDBC, Apache POI, and other libraries (~10-15 MB total).
 
 ### 3. Run the app
 - **Option A (Maven):** Right-click `pom.xml` → Run Maven → `javafx:run`
 - **Option B (Main class):** Open `MainApp.java` → click the green ▶ Run button
 - **Option C (Run Config):** The `.idea/runConfigurations/BoatTicketSystem.xml` is pre-configured
+
+The app starts with a login screen. Default credentials are admin/admin (or check DatabaseManager for setup).
 
 ### If you see module errors, add VM options:
 ```
@@ -66,13 +74,17 @@ BoatTicketSystem/
 │       │   └── com/boatticket/
 │       │       ├── MainApp.java     ← Entry point
 │       │       ├── controller/
-│       │       │   └── BookingController.java  ← UI logic
+│       │       │   └── BookingController.java  ← Booking UI logic
+│       │       ├── db/
+│       │       │   └── DatabaseManager.java    ← SQLite database operations
 │       │       ├── model/
-│       │       │   └── Ticket.java  ← Data model + fee constants
+│       │       │   ├── Ticket.java             ← Ticket data model + fee constants
+│       │       │   └── BoatOwner.java          ← Boat owner data model
 │       │       └── util/
-│       │           └── PdfGenerator.java  ← iText PDF generation
+│       │           └── ThermalPrinterManager.java ← Thermal printing utilities
 │       └── resources/com/boatticket/
-│           ├── booking.fxml         ← UI layout
+│           ├── login.fxml           ← Login UI layout
+│           ├── booking.fxml         ← Booking UI layout
 │           └── styles.css           ← Styling
 └── .idea/runConfigurations/         ← Pre-built IntelliJ run config
 ```
@@ -82,32 +94,33 @@ BoatTicketSystem/
 ## 💰 Fee Structure (all preset — edit in `Ticket.java`)
 
 ```java
-BOAT_RIDE_FEE_PER_PERSON  = 400   // 1-hour ride
-LIFE_JACKET_FEE           = 10    // per jacket
-PARKING_FEE_TWO_WHEELER   = 10
+BOAT_RIDE_FEE_PER_HOUR    = 1500  // per hour
+BOAT_RIDE_FEE_2HOURS      = 2500  // special rate for 2 hours
+LIFE_JACKET_FEE           = 10    // per jacket (mandatory)
 PARKING_FEE_CAR           = 20
-PARKING_FEE_AUTO          = 15
-PARKING_FEE_BUS           = 40
-PARKING_FEE_TRUCK         = 50
+PARKING_FEE_BUS           = 50
+PARKING_FEE_TEMPOTRAVELLER = 35
 ```
 
 To change any fee, open `src/main/java/com/boatticket/model/Ticket.java` and edit the constants at the top.
 
 ---
 
-## 🖨️ Generating a Ticket PDF
+## 🖨️ Generating a Ticket (Thermal Print)
 
-1. Fill in the booking form
-2. Click **"📄 Generate & Save PDF Ticket"**
-3. Choose a folder in the dialog
-4. Your ticket is saved as `Ticket_BT-XXXXXXXX.pdf`
+1. Fill in the booking form (login required)
+2. Select boat/driver, duration, parking if needed
+3. Click **"Generate Ticket"**
+4. The ticket is automatically printed to the default thermal printer
+5. A preview is also shown in the console
 
-The PDF includes:
+The thermal ticket includes:
 - Unique Ticket ID + booking timestamp
 - Customer & ride details
-- Itemised fee breakdown
+- Boat/driver assignment
+- Itemised fee breakdown (Boat, Jackets, Parking)
+- Driver Amount + Counter Amount
 - Total amount
-- Scannable barcode
 
 ---
 
@@ -128,7 +141,7 @@ The PDF includes:
 
 ```bash
 mvn clean package
-java -jar target/BoatTicketSystem-1.0-SNAPSHOT.jar
+java -jar target/BoatTicketSystem-2.0-SNAPSHOT.jar
 ```
 
 ---
