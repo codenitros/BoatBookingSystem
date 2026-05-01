@@ -141,7 +141,7 @@
             <HBox spacing="16" alignment="CENTER_RIGHT">
                 <Button fx:id="resetBtn"    text="🔄 Reset"
                         styleClass="btn-secondary" onAction="#handleReset"/>
-                <Button fx:id="generateBtn" text="📄 Generate &amp; Save PDF Ticket"
+                <Button fx:id="generateBtn" text="Print"
                         styleClass="btn-primary"   onAction="#handleGenerateTicket"/>
             </HBox>
 

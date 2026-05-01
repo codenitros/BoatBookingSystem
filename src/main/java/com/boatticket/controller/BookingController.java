@@ -4,7 +4,7 @@ import com.boatticket.MainApp;
 import com.boatticket.db.DatabaseManager;
 import com.boatticket.model.BoatOwner;
 import com.boatticket.model.Ticket;
-import com.boatticket.util.PdfGenerator;
+import com.boatticket.util.ThermalPrinterManager;
 import javafx.animation.FadeTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -157,7 +157,9 @@ public class BookingController implements Initializable {
     private void refreshFees() {
         int people    = safeInt(peopleSpinner, 1);
         int duration  = getDurationFromUI();
-        int boatFee   = Ticket.BOAT_RIDE_FEE_PER_HOUR * duration;
+
+        // Apply special 2-hour rate
+        int boatFee = (duration == 2) ? Ticket.BOAT_RIDE_FEE_2HOURS : Ticket.BOAT_RIDE_FEE_PER_HOUR * duration;
         int jacketFee = Ticket.LIFE_JACKET_FEE * people;
         int parkFee   = getParkingFeeFromUI();
         int toDriver  = boatFee + jacketFee;
@@ -218,20 +220,18 @@ public class BookingController implements Initializable {
             return;
         }
 
-        // Save PDF
-        DirectoryChooser dc = new DirectoryChooser();
-        dc.setTitle("Choose folder to save ticket PDF");
-        dc.setInitialDirectory(new File(System.getProperty("user.home")));
-        File dir = dc.showDialog(generateBtn.getScene().getWindow());
-        if (dir == null) return;
-
-        String path = dir.getAbsolutePath() + File.separator + "Ticket_" + ticket.getTicketId() + ".pdf";
+        // Print to system default thermal printer and console
         try {
-            PdfGenerator.generate(ticket, path);
-            showStatus("Ticket saved: " + path, true);
+            // Print to thermal printer
+            String printerName = ThermalPrinterManager.printTicket(ticket);
+
+            // Also print to console for preview
+            ThermalPrinterManager.printTicketToConsole(ticket);
+
+            showStatus("✓ Ticket sent to printer: " + printerName, true);
         } catch (Exception e) {
             e.printStackTrace();
-            showStatus("❌  PDF error: " + e.getMessage(), false);
+            showStatus("❌  Print error: " + e.getMessage(), false);
         }
     }
 

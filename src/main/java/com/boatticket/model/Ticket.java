@@ -7,6 +7,7 @@ import java.util.UUID;
 public class Ticket {
 
     public static final int BOAT_RIDE_FEE_PER_HOUR = 1500;
+    public static final int BOAT_RIDE_FEE_2HOURS   = 2500;  // Special rate for 2 hours
     public static final int LIFE_JACKET_FEE           = 10;
     public static final int PARKING_FEE_CAR            = 20;
     public static final int PARKING_FEE_BUS             = 50;
@@ -34,7 +35,13 @@ public class Ticket {
         this.bookingTime = LocalDateTime.now();
     }
 
-    public int getBoatRideFee() { return BOAT_RIDE_FEE_PER_HOUR * rideDurationInHour; }
+    public int getBoatRideFee() {
+        // Special rate for 2 hours
+        if (rideDurationInHour == 2) {
+            return BOAT_RIDE_FEE_2HOURS;
+        }
+        return BOAT_RIDE_FEE_PER_HOUR * rideDurationInHour;
+    }
 
     public int getLifeJacketFee() {
         return lifeJacketRequired ? LIFE_JACKET_FEE * lifeJacketCount : 0;
