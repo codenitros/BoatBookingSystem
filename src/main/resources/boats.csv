@@ -1,0 +1,8 @@
+id,driver_name,boat_hr_number,boat_hon_number,jetty,capacity,contact
+1,Ravi Kumar,HR-001,HON-568,jetty-a,8,9900011001
+2,Suresh Babu,HR-002,HON-009,jetty-a,8,9900011002
+3,Manoj Reddy,HR-003,HON-532,jetty-b,6,9900011003
+4,Kiran Sharma,HR-004,HON-765,jetty-b,8,9900011004
+5,Ajay Nair,HR-005,HON-453,jetty-c,6,9900011005
+6,Vijay Patil,HR-006,HON-123,jetty-c,6,9900011006
+7,Santosh Bhat,HR-0023,HON-183,jetty-c,6,9988011006

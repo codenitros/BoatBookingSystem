@@ -28,6 +28,7 @@ public class DatabaseManager {
     private DatabaseManager() {
         try {
             new File(DB_DIR).mkdirs();
+            copyBoatsCsvIfNeeded();
             initSchema();
             seedData();
         } catch (Exception e) {
@@ -102,10 +103,8 @@ public class DatabaseManager {
                     insertUser(c, "agent3", "agent3@123", "agent");
                 }
             }
-            try (Statement s = c.createStatement();
-                 ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM boats")) {
-                if (rs.getInt(1) == 0) seedBoats(c);
-            }
+            // Always reload boats from CSV on startup to reflect any changes
+            reloadBoats(c);
         }
     }
 
@@ -119,28 +118,55 @@ public class DatabaseManager {
     }
 
     private void seedBoats(Connection c) throws SQLException {
-        String[][] boats = {
-            {"1","Ravi Kumar","HR-001","HON-568","jetty-a","8","9900011001"},
-            {"2","Suresh Babu","HR-002","HON-009","jetty-a","8","9900011002"},
-            {"3","Manoj Reddy","HR-003","HON-532","jetty-b","6","9900011003"},
-            {"4","Kiran Sharma","HR-004","HON-765","jetty-b","8","9900011004"},
-            {"5","Ajay Nair","HR-005","HON-453","jetty-c","6","9900011005"},
-            {"6","Vijay Patil","HR-006","HON-123","jetty-c","6","9900011006"},
-        };
-
-        try (PreparedStatement ps = c.prepareStatement(
-                "INSERT INTO boats(id,driver_name,boat_hr_number,boat_hon_number,jetty,capacity,contact) VALUES(?,?,?,?,?,?,?)")) {
-        for (String[] b : boats) {
-            ps.setInt(1, Integer.parseInt(b[0]));
-            ps.setString(2, b[1]);
-            ps.setString(3, b[2]);
-            ps.setString(4, b[3]);
-            ps.setString(5, b[4]);
-            ps.setInt(6, Integer.parseInt(b[5]));
-            ps.setString(7, b[6]);
-            ps.addBatch();
+        Path csvPath = Paths.get(DB_DIR, "boats.csv");
+        try (BufferedReader br = Files.exists(csvPath) ?
+                Files.newBufferedReader(csvPath) :
+                new BufferedReader(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("boats.csv")))) {
+            String line;
+            boolean firstLine = true;
+            try (PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO boats(id,driver_name,boat_hr_number,boat_hon_number,jetty,capacity,contact) VALUES(?,?,?,?,?,?,?)")) {
+                while ((line = br.readLine()) != null) {
+                    if (firstLine) {
+                        firstLine = false;
+                        continue; // skip header
+                    }
+                    String[] parts = line.split(",");
+                    if (parts.length == 7) {
+                        ps.setInt(1, Integer.parseInt(parts[0].trim()));
+                        ps.setString(2, parts[1].trim());
+                        ps.setString(3, parts[2].trim());
+                        ps.setString(4, parts[3].trim());
+                        ps.setString(5, parts[4].trim());
+                        ps.setInt(6, Integer.parseInt(parts[5].trim()));
+                        ps.setString(7, parts[6].trim());
+                        ps.addBatch();
+                    }
+                }
+                ps.executeBatch();
+            }
+        } catch (IOException e) {
+            throw new SQLException("Failed to read boats.csv", e);
         }
-            ps.executeBatch();
+    }
+
+    private void reloadBoats(Connection c) throws SQLException {
+        try (Statement s = c.createStatement()) {
+            // Delete all existing boats to reload from CSV
+            s.executeUpdate("DELETE FROM boats");
+        }
+        // Load from CSV
+        seedBoats(c);
+    }
+
+    private void copyBoatsCsvIfNeeded() throws IOException {
+        Path csvPath = Paths.get(DB_DIR, "boats.csv");
+        if (!Files.exists(csvPath)) {
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream("boats.csv")) {
+                if (is != null) {
+                    Files.copy(is, csvPath);
+                }
+            }
         }
     }
 
@@ -289,3 +315,4 @@ public class DatabaseManager {
         return tickets;
     }
 }
+

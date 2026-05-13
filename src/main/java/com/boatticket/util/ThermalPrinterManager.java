@@ -83,22 +83,21 @@ public class ThermalPrinterManager {
         StringBuilder sb = new StringBuilder();
 
         // Header
-        sb.append(centerText("SHARAVATI BACKWATER")).append("\n");
-        sb.append(centerText("BOATING HONNAVAR")).append("\n");
-        sb.append(centerText("TICKET RECEIPT")).append("\n");
+        sb.append(centerText("SHARAVATI BACKWATER BOATING")).append("\n");
+        sb.append(centerText("HONNAVAR, RECEIPT")).append("\n");
         sb.append(SEPARATOR).append("\n");
         sb.append("\n");
 
         // Ticket ID & Date
-        sb.append("*** TICKET ID: ").append(ticket.getTicketId()).append(" ***\n");
+        //sb.append("*** TICKET ID: ").append(ticket.getTicketId()).append(" ***\n");
         sb.append("DATE & TIME: ").append(formatDateTime(ticket.getFormattedBookingTime())).append("\n");
         sb.append("\n");
 
         // Customer Details
-        sb.append("CUSTOMER DETAILS").append("\n");
-        sb.append(SEPARATOR).append("\n");
-        sb.append("Name: ").append(truncate(ticket.getCustomerName(), LINE_WIDTH - 6)).append("\n");
-        sb.append("Contact: ").append(ticket.getContactNumber()).append("\n");
+//        sb.append("CUSTOMER DETAILS").append("\n");
+//        sb.append(SEPARATOR).append("\n");
+//        sb.append("Name: ").append(truncate(ticket.getCustomerName(), LINE_WIDTH - 6)).append("\n");
+//        sb.append("Contact: ").append(ticket.getContactNumber()).append("\n");
         sb.append("Persons: ").append(ticket.getNumberOfPeople()).append("\n");
         sb.append("\n");
 
@@ -107,6 +106,7 @@ public class ThermalPrinterManager {
             sb.append("DRIVER & BOAT DETAILS").append("\n");
             sb.append(SEPARATOR).append("\n");
             sb.append("Driver: ").append(truncate(ticket.getBoatOwner().getDriverName(), LINE_WIDTH - 8)).append("\n");
+            sb.append("Driver Number: ").append(ticket.getBoatOwner().getContact()).append("\n");
             sb.append("Boat HR: ").append(ticket.getBoatOwner().getBoatHRNumber()).append("\n");
             sb.append("Capacity: ").append(ticket.getBoatOwner().getCapacity()).append(" persons\n");
             sb.append("\n");
@@ -144,10 +144,10 @@ public class ThermalPrinterManager {
         }
 
         sb.append("\n");
-        sb.append("*** AMOUNT TO DRIVER ***").append("\n");
-        sb.append("*** Rs ").append(ticket.getAmountToDriver()).append(" ***\n");
-        sb.append("(Paid directly to driver)").append("\n");
-        sb.append("\n");
+//        sb.append("*** AMOUNT TO DRIVER ***").append("\n");
+//        sb.append("*** Rs ").append(ticket.getAmountToDriver()).append(" ***\n");
+//        sb.append("(Paid directly to driver)").append("\n");
+//        sb.append("\n");
 
         // Counter Payable
         if (ticket.getCounterPayable() > 0) {
