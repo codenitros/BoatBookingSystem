@@ -8,10 +8,10 @@ import com.boatticket.util.ThermalPrinterManager;
 import javafx.animation.FadeTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -31,12 +31,10 @@ public class BookingController implements Initializable {
 
     private static final int MAX_PASSENGERS_WITHOUT_BOAT = 50;
 
-    // Customer
     @FXML private TextField customerNameField;
     @FXML private TextField contactNumberField;
     @FXML private Label contactNumberValidationLabel;
 
-    // Ride
     @FXML private Spinner<Integer> peopleSpinner;
     @FXML private Label boatFeeLabel;
     @FXML private RadioButton rb1Hour, rb2Hour;
@@ -48,63 +46,63 @@ public class BookingController implements Initializable {
     @FXML private Label parkingFeeLabel;
     @FXML private Label passengerCapacityValidationLabel;
 
-    // Boat assignment
     @FXML private TextField boatSearchField;
     @FXML private ComboBox<BoatOwner> boatComboBox;
     @FXML private Label boatDetailsLabel;
 
-    // Summary
     @FXML private Label totalFeeLabel;
     @FXML private Label driverAmountLabel;
     @FXML private Label counterAmountLabel;
     @FXML private Label statusLabel;
     @FXML private Label loggedInLabel;
 
-    // Buttons
     @FXML private Button generateBtn;
     @FXML private Button resetBtn;
     @FXML private Button backupBtn;
     @FXML private Button viewTicketsBtn;
     @FXML private Button logoutBtn;
 
-    private ObservableList<BoatOwner> allBoats = FXCollections.observableArrayList();
-
     @FXML private ToggleGroup durationGroup;
 
+    private final ObservableList<BoatOwner> allBoats =
+            FXCollections.observableArrayList();
+
     @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        loggedInLabel.setText("Logged in as:  " + MainApp.loggedInUser + "  [" + MainApp.loggedInRole + "]");
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        loggedInLabel.setText(
+                "Logged in as:  " + MainApp.loggedInUser +
+                        "  [" + MainApp.loggedInRole + "]"
+        );
 
         configureContactNumberField();
 
         contactNumberField.textProperty().addListener((obs, oldValue, newValue) ->
                 updateContactNumberValidationMessage());
 
-        // Spinners
-        peopleSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
-                1, MAX_PASSENGERS_WITHOUT_BOAT, 1));
+        peopleSpinner.setValueFactory(
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                        1,
+                        MAX_PASSENGERS_WITHOUT_BOAT,
+                        1
+                )
+        );
         peopleSpinner.setEditable(true);
         configurePeopleSpinnerEditor();
 
         parkingBox.setVisible(false);
         parkingBox.setManaged(false);
 
-        // Radio button userData
         rbCar.setUserData(Ticket.VehicleType.CAR);
         rbBus.setUserData(Ticket.VehicleType.BUS);
         rbTempo.setUserData(Ticket.VehicleType.TEMPOTRAVELLER);
-
-        // Duration group
 
         rb1Hour.setUserData(1);
         rb2Hour.setUserData(2);
         rb1Hour.setSelected(true);
 
-        // Load boats into ComboBox
         loadBoats();
 
-        // Live search filter on boat combo
-        boatSearchField.textProperty().addListener((obs, o, term) -> {
+        boatSearchField.textProperty().addListener((obs, oldValue, term) -> {
             String lower = term.toLowerCase();
             ObservableList<BoatOwner> filtered = FXCollections.observableArrayList();
 
@@ -125,7 +123,7 @@ public class BookingController implements Initializable {
             }
         });
 
-        boatComboBox.setOnAction(e -> {
+        boatComboBox.setOnAction(event -> {
             BoatOwner selectedBoat = boatComboBox.getValue();
 
             if (selectedBoat != null) {
@@ -136,7 +134,8 @@ public class BookingController implements Initializable {
                                 "  |  Boat HON Number: " + selectedBoat.getBoatHONumber() +
                                 "  |  Jetty: " + selectedBoat.getJetty() +
                                 "  |  Capacity: " + selectedBoat.getCapacity() +
-                                "  |  Contact: " + selectedBoat.getContact());
+                                "  |  Contact: " + selectedBoat.getContact()
+                );
 
                 updatePassengerCapacity();
             } else {
@@ -147,17 +146,16 @@ public class BookingController implements Initializable {
             passengerCapacityValidationLabel.setText("");
         });
 
-        // Fee listeners
-        peopleSpinner.valueProperty().addListener((obs, o, n) -> refreshFees());
-        durationGroup.selectedToggleProperty().addListener((obs, o, n) -> refreshFees());
+        peopleSpinner.valueProperty().addListener((obs, oldValue, newValue) -> refreshFees());
+        durationGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> refreshFees());
 
-        parkingCheckBox.selectedProperty().addListener((obs, o, selected) -> {
+        parkingCheckBox.selectedProperty().addListener((obs, oldValue, selected) -> {
             parkingBox.setVisible(selected);
             parkingBox.setManaged(selected);
             refreshFees();
         });
 
-        vehicleGroup.selectedToggleProperty().addListener((obs, o, n) -> refreshFees());
+        vehicleGroup.selectedToggleProperty().addListener((obs, oldValue, newValue) -> refreshFees());
 
         refreshFees();
     }
@@ -165,11 +163,12 @@ public class BookingController implements Initializable {
     private void configureContactNumberField() {
         UnaryOperator<TextFormatter.Change> contactNumberFilter = change -> {
             String newValue = change.getControlNewText();
-
             return newValue.matches("\\d{0,10}") ? change : null;
         };
 
-        contactNumberField.setTextFormatter(new TextFormatter<>(contactNumberFilter));
+        contactNumberField.setTextFormatter(
+                new TextFormatter<>(contactNumberFilter)
+        );
     }
 
     private void configurePeopleSpinnerEditor() {
@@ -192,7 +191,8 @@ public class BookingController implements Initializable {
 
                 if (selectedBoat != null && passengers > selectedBoat.getCapacity()) {
                     passengerCapacityValidationLabel.setText(
-                            "Maximum passengers allowed: " + selectedBoat.getCapacity());
+                            "Maximum passengers allowed: " + selectedBoat.getCapacity()
+                    );
                     return null;
                 }
 
@@ -203,14 +203,18 @@ public class BookingController implements Initializable {
             }
         };
 
-        peopleSpinner.getEditor().setTextFormatter(new TextFormatter<>(passengerFilter));
+        peopleSpinner.getEditor().setTextFormatter(
+                new TextFormatter<>(passengerFilter)
+        );
     }
 
     private void updateContactNumberValidationMessage() {
         String phone = contactNumberField.getText().trim();
 
         if (!phone.isBlank() && phone.length() < 10) {
-            contactNumberValidationLabel.setText("Enter 10-digit contact number.");
+            contactNumberValidationLabel.setText(
+                    "Enter 10-digit contact number."
+            );
         } else {
             contactNumberValidationLabel.setText("");
         }
@@ -231,33 +235,47 @@ public class BookingController implements Initializable {
         int currentPassengers = safeInt(peopleSpinner, 1);
         int allowedPassengers = Math.min(currentPassengers, maximumCapacity);
 
-        peopleSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
-                1, maximumCapacity, allowedPassengers));
+        peopleSpinner.setValueFactory(
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                        1,
+                        maximumCapacity,
+                        allowedPassengers
+                )
+        );
 
         refreshFees();
     }
 
     private void resetPassengerCapacity() {
         int currentPassengers = safeInt(peopleSpinner, 1);
-        int allowedPassengers = Math.min(currentPassengers, MAX_PASSENGERS_WITHOUT_BOAT);
+        int allowedPassengers = Math.min(
+                currentPassengers,
+                MAX_PASSENGERS_WITHOUT_BOAT
+        );
 
-        peopleSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
-                1, MAX_PASSENGERS_WITHOUT_BOAT, allowedPassengers));
+        peopleSpinner.setValueFactory(
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                        1,
+                        MAX_PASSENGERS_WITHOUT_BOAT,
+                        allowedPassengers
+                )
+        );
 
         refreshFees();
     }
 
     private void loadBoats() {
-        try (ResultSet rs = DatabaseManager.getInstance().getAllBoats()) {
-            while (rs.next()) {
+        try (ResultSet resultSet = DatabaseManager.getInstance().getAllBoats()) {
+            while (resultSet.next()) {
                 allBoats.add(new BoatOwner(
-                        rs.getInt("id"),
-                        rs.getString("driver_name"),
-                        rs.getString("boat_hr_number"),
-                        rs.getString("boat_hon_number"),
-                        rs.getString("jetty"),
-                        rs.getInt("capacity"),
-                        rs.getString("contact")));
+                        resultSet.getInt("id"),
+                        resultSet.getString("driver_name"),
+                        resultSet.getString("boat_hr_number"),
+                        resultSet.getString("boat_hon_number"),
+                        resultSet.getString("jetty"),
+                        resultSet.getInt("capacity"),
+                        resultSet.getString("contact")
+                ));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -270,19 +288,19 @@ public class BookingController implements Initializable {
         int people = safeInt(peopleSpinner, 1);
         int duration = getDurationFromUI();
 
-        int boatFee = (duration == 2)
+        int boatFee = duration == 2
                 ? Ticket.BOAT_RIDE_FEE_2HOURS
                 : Ticket.BOAT_RIDE_FEE_PER_HOUR * duration;
 
         int jacketFee = Ticket.LIFE_JACKET_FEE * people;
-        int parkFee = getParkingFeeFromUI();
-        int toDriver = boatFee + jacketFee;
-        int total = toDriver + parkFee;
+        int parkingFee = getParkingFeeFromUI();
+        int amountToDriver = boatFee + jacketFee;
+        int total = amountToDriver + parkingFee;
 
         boatFeeLabel.setText("Rs " + boatFee);
-        parkingFeeLabel.setText("Rs " + parkFee);
-        driverAmountLabel.setText("Rs " + toDriver);
-        counterAmountLabel.setText("Rs " + parkFee);
+        parkingFeeLabel.setText("Rs " + parkingFee);
+        driverAmountLabel.setText("Rs " + amountToDriver);
+        counterAmountLabel.setText("Rs " + parkingFee);
         totalFeeLabel.setText("Rs " + total);
     }
 
@@ -319,7 +337,6 @@ public class BookingController implements Initializable {
         }
 
         Integer duration = (Integer) selectedToggle.getUserData();
-
         return duration != null ? duration : 1;
     }
 
@@ -341,7 +358,8 @@ public class BookingController implements Initializable {
         if (parkingCheckBox.isSelected()
                 && vehicleGroup.getSelectedToggle() != null) {
             ticket.setVehicleType(
-                    (Ticket.VehicleType) vehicleGroup.getSelectedToggle().getUserData());
+                    (Ticket.VehicleType) vehicleGroup.getSelectedToggle().getUserData()
+            );
             ticket.setVehicleNumber(vehicleNumberField.getText().trim());
         }
 
@@ -352,7 +370,8 @@ public class BookingController implements Initializable {
             DatabaseManager.getInstance().saveTicket(
                     ticket,
                     boatComboBox.getValue().getId(),
-                    MainApp.loggedInUser);
+                    MainApp.loggedInUser
+            );
         } catch (Exception e) {
             e.printStackTrace();
             showStatus("DB error: " + e.getMessage(), false);
@@ -374,8 +393,13 @@ public class BookingController implements Initializable {
         customerNameField.clear();
         contactNumberField.clear();
 
-        peopleSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
-                1, MAX_PASSENGERS_WITHOUT_BOAT, 1));
+        peopleSpinner.setValueFactory(
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                        1,
+                        MAX_PASSENGERS_WITHOUT_BOAT,
+                        1
+                )
+        );
 
         passengerCapacityValidationLabel.setText("");
 
@@ -396,17 +420,26 @@ public class BookingController implements Initializable {
     private void handleBackup() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Choose folder to export Excel file");
-        directoryChooser.setInitialDirectory(new File(System.getProperty("user.home")));
+        directoryChooser.setInitialDirectory(
+                new File(System.getProperty("user.home"))
+        );
 
-        File directory = directoryChooser.showDialog(backupBtn.getScene().getWindow());
+        File directory = directoryChooser.showDialog(
+                backupBtn.getScene().getWindow()
+        );
 
         if (directory == null) {
             return;
         }
 
         try {
-            DatabaseManager.getInstance().exportToExcel(directory.getAbsolutePath());
-            showStatus("Excel exported to: " + directory.getAbsolutePath(), true);
+            DatabaseManager.getInstance().exportToExcel(
+                    directory.getAbsolutePath()
+            );
+            showStatus(
+                    "Excel exported to: " + directory.getAbsolutePath(),
+                    true
+            );
         } catch (Exception e) {
             showStatus("Export failed: " + e.getMessage(), false);
         }
@@ -426,7 +459,7 @@ public class BookingController implements Initializable {
     @FXML
     private void handleViewTickets() {
         try {
-            List<String> tickets = DatabaseManager.getInstance().getTodaysTickets();
+            List<Ticket> tickets = DatabaseManager.getInstance().getTodaysTickets();
 
             if (tickets.isEmpty()) {
                 showStatus("No tickets issued today.", false);
@@ -438,25 +471,87 @@ public class BookingController implements Initializable {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initOwner(viewTicketsBtn.getScene().getWindow());
 
-            VBox vbox = new VBox(10);
-            vbox.setPadding(new Insets(10));
+            VBox ticketRows = new VBox(8);
+            ticketRows.setPadding(new Insets(10));
 
-            Label label = new Label("Tickets issued today:");
+            for (Ticket ticket : tickets) {
+                ticketRows.getChildren().add(createTicketRow(ticket));
+            }
 
-            TextArea textArea = new TextArea(String.join("\n", tickets));
-            textArea.setEditable(false);
-            textArea.setPrefRowCount(20);
+            ScrollPane scrollPane = new ScrollPane(ticketRows);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setPrefViewportHeight(360);
 
             Button closeButton = new Button("Close");
-            closeButton.setOnAction(e -> stage.close());
+            closeButton.setOnAction(event -> stage.close());
 
-            vbox.getChildren().addAll(label, textArea, closeButton);
+            VBox root = new VBox(10);
+            root.setPadding(new Insets(12));
+            root.getChildren().addAll(
+                    new Label("Tickets issued today:"),
+                    scrollPane,
+                    closeButton
+            );
 
-            Scene scene = new Scene(vbox, 600, 400);
+            Scene scene = new Scene(root, 950, 460);
             stage.setScene(scene);
             stage.showAndWait();
         } catch (Exception e) {
             showStatus("Error fetching tickets: " + e.getMessage(), false);
+        }
+    }
+
+    private HBox createTicketRow(Ticket ticket) {
+        String driverName = ticket.getBoatOwner() != null
+                ? ticket.getBoatOwner().getDriverName()
+                : "Boat details unavailable";
+
+        Label ticketDetails = new Label(
+                "Customer: " + ticket.getCustomerName() +
+                        "  |  Ticket ID: " + ticket.getTicketId() +
+                        "  |  Time: " + ticket.getFormattedBookingTime() +
+                        "  |  Driver: " + driverName
+        );
+
+        ticketDetails.setWrapText(true);
+        ticketDetails.setMaxWidth(Double.MAX_VALUE);
+
+        Button reprintButton = new Button("Reprint");
+        reprintButton.setOnAction(event -> reprintTicket(ticket));
+
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(8));
+        row.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-border-color: #d5dce5;" +
+                        "-fx-border-radius: 4;" +
+                        "-fx-background-radius: 4;"
+        );
+
+        HBox.setHgrow(ticketDetails, Priority.ALWAYS);
+        row.getChildren().addAll(ticketDetails, reprintButton);
+
+        return row;
+    }
+
+    private void reprintTicket(Ticket ticket) {
+        try {
+            String printerName = ThermalPrinterManager.printTicket(ticket);
+            ThermalPrinterManager.printTicketToConsole(ticket);
+
+            showStatus(
+                    "Ticket " + ticket.getTicketId() +
+                            " reprinted on: " + printerName,
+                    true
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            showStatus(
+                    "Reprint failed for " + ticket.getTicketId() +
+                            ": " + e.getMessage(),
+                    false
+            );
         }
     }
 
@@ -491,8 +586,10 @@ public class BookingController implements Initializable {
 
         if (passengers > boatCapacity) {
             showStatus(
-                    "Passengers cannot exceed the selected boat capacity of " + boatCapacity + ".",
-                    false);
+                    "Passengers cannot exceed the selected boat capacity of " +
+                            boatCapacity + ".",
+                    false
+            );
             peopleSpinner.requestFocus();
             return false;
         }
