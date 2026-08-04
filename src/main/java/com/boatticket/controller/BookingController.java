@@ -4,6 +4,7 @@ import com.boatticket.MainApp;
 import com.boatticket.db.DatabaseManager;
 import com.boatticket.model.BoatOwner;
 import com.boatticket.model.Ticket;
+import com.boatticket.util.PdfTicketManager;
 import com.boatticket.util.ThermalPrinterManager;
 import javafx.animation.FadeTransition;
 import javafx.collections.FXCollections;
@@ -378,14 +379,7 @@ public class BookingController implements Initializable {
             return;
         }
 
-        try {
-            String printerName = ThermalPrinterManager.printTicket(ticket);
-            ThermalPrinterManager.printTicketToConsole(ticket);
-            showStatus("Ticket sent to printer: " + printerName, true);
-        } catch (Exception e) {
-            e.printStackTrace();
-            showStatus("Print error: " + e.getMessage(), false);
-        }
+        generatePdfAndPrint(ticket);
     }
 
     @FXML
@@ -536,22 +530,37 @@ public class BookingController implements Initializable {
     }
 
     private void reprintTicket(Ticket ticket) {
-        try {
-            String printerName = ThermalPrinterManager.printTicket(ticket);
-            ThermalPrinterManager.printTicketToConsole(ticket);
+        generatePdfAndPrint(ticket);
+    }
 
+    /**
+     * Generates the ticket PDF and saves it to the Downloads/BoatTickets
+     * folder (it is NOT opened automatically). Also attempts to send the
+     * ticket to the thermal/system printer as a best-effort secondary step
+     * so a missing or misconfigured printer never blocks the PDF.
+     */
+    private void generatePdfAndPrint(Ticket ticket) {
+        File pdfFile;
+
+        try {
+            pdfFile = PdfTicketManager.generateTicketPdf(ticket);
             showStatus(
-                    "Ticket " + ticket.getTicketId() +
-                            " reprinted on: " + printerName,
+                    "Ticket " + ticket.getTicketId() + " saved to: " + pdfFile.getAbsolutePath(),
                     true
             );
         } catch (Exception e) {
             e.printStackTrace();
-            showStatus(
-                    "Reprint failed for " + ticket.getTicketId() +
-                            ": " + e.getMessage(),
-                    false
-            );
+            showStatus("Failed to create PDF ticket: " + e.getMessage(), false);
+            return;
+        }
+
+        try {
+            ThermalPrinterManager.printTicket(ticket);
+            ThermalPrinterManager.printTicketToConsole(ticket);
+        } catch (Exception e) {
+            // Thermal printing is best-effort only; do not block on it or
+            // overwrite the PDF status message with a printer error.
+            e.printStackTrace();
         }
     }
 
