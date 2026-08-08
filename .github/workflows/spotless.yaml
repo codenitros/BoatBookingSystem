@@ -28,4 +28,4 @@ jobs:
             ${{ runner.os }}-m2-
 
       - name: Run Spotless Check
-        run: mvn -B -V -q com.diffplug.spotless:spotless-maven-plugin:2.32.2:check
+        run: mvn -B -V -q com.diffplug.spotless:spotless-maven-plugin:2.31.0:check
