@@ -7,65 +7,115 @@ import java.util.UUID;
 public class Ticket {
 
     public static final int BOAT_RIDE_FEE_PER_HOUR = 1500;
-    public static final int BOAT_RIDE_FEE_2HOURS   = 2500;  // Special rate for 2 hours
-    public static final int LIFE_JACKET_FEE           = 10;
-    public static final int PARKING_FEE_CAR            = 20;
-    public static final int PARKING_FEE_BUS             = 50;
-    public static final int PARKING_FEE_TEMPOTRAVELLER   = 35;
+    public static final int BOAT_RIDE_FEE_2HOURS = 2500;
+    public static final int LIFE_JACKET_FEE = 10;
+    public static final int PARKING_FEE_CAR = 20;
+    public static final int PARKING_FEE_BUS = 50;
+    public static final int PARKING_FEE_TEMPOTRAVELLER = 35;
 
-    private final String        ticketId;
+    private final String ticketId;
     private final LocalDateTime bookingTime;
-    private String      customerName;
-    private String      contactNumber;
-    private int         numberOfPeople;
-    private boolean     lifeJacketRequired;
-    private int         lifeJacketCount;
-    private boolean     parkingRequired;
+
+    private String customerName;
+    private String contactNumber;
+    private int numberOfPeople;
+    private boolean lifeJacketRequired;
+    private int lifeJacketCount;
+    private boolean parkingRequired;
     private VehicleType vehicleType;
-    private String      vehicleNumber;
-    private BoatOwner   boatOwner;
-    private String      bookedBy;
-    private int         rideDurationInHour;
-    private String    boatHRNumber;
-    private String    boatHONumber;
-    private String    jetty;
+    private String vehicleNumber;
+    private BoatOwner boatOwner;
+    private String bookedBy;
+    private int rideDurationInHour;
+    private String boatHRNumber;
+    private String boatHONumber;
+    private String jetty;
+
+    private Integer storedBoatRideFee;
+    private Integer storedLifeJacketFee;
+    private Integer storedParkingFee;
+    private Integer storedTotalFee;
 
     public Ticket() {
-        this.ticketId    = "BT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        this.bookingTime = LocalDateTime.now();
+        this(
+                "BT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
+                LocalDateTime.now()
+        );
+    }
+
+    public Ticket(String ticketId, LocalDateTime bookingTime) {
+        this.ticketId = ticketId;
+        this.bookingTime = bookingTime;
     }
 
     public int getBoatRideFee() {
-        // Special rate for 2 hours
+        if (storedBoatRideFee != null) {
+            return storedBoatRideFee;
+        }
+
         if (rideDurationInHour == 2) {
             return BOAT_RIDE_FEE_2HOURS;
         }
+
         return BOAT_RIDE_FEE_PER_HOUR * rideDurationInHour;
     }
 
     public int getLifeJacketFee() {
+        if (storedLifeJacketFee != null) {
+            return storedLifeJacketFee;
+        }
+
         return lifeJacketRequired ? LIFE_JACKET_FEE * lifeJacketCount : 0;
     }
 
     public int getParkingFee() {
-        if (!parkingRequired || vehicleType == null) return 0;
+        if (storedParkingFee != null) {
+            return storedParkingFee;
+        }
+
+        if (!parkingRequired || vehicleType == null) {
+            return 0;
+        }
+
         return switch (vehicleType) {
-            case CAR         -> PARKING_FEE_CAR;
-            case BUS         -> PARKING_FEE_BUS;
-            case TEMPOTRAVELLER  -> PARKING_FEE_TEMPOTRAVELLER;
+            case CAR -> PARKING_FEE_CAR;
+            case BUS -> PARKING_FEE_BUS;
+            case TEMPOTRAVELLER -> PARKING_FEE_TEMPOTRAVELLER;
         };
     }
 
-    public int getAmountToDriver()   { return getBoatRideFee() + getLifeJacketFee(); }
-    public int getCounterPayable()   { return getParkingFee(); }
-    public int getTotalFee()         { return getBoatRideFee() + getLifeJacketFee() + getParkingFee(); }
+    public int getAmountToDriver() {
+        return getBoatRideFee() + getLifeJacketFee();
+    }
+
+    public int getCounterPayable() {
+        return getParkingFee();
+    }
+
+    public int getTotalFee() {
+        if (storedTotalFee != null) {
+            return storedTotalFee;
+        }
+
+        return getBoatRideFee() + getLifeJacketFee() + getParkingFee();
+    }
+
+    public void setStoredFees(int boatRideFee, int lifeJacketFee, int parkingFee, int totalFee) {
+        this.storedBoatRideFee = boatRideFee;
+        this.storedLifeJacketFee = lifeJacketFee;
+        this.storedParkingFee = parkingFee;
+        this.storedTotalFee = totalFee;
+    }
 
     public String getFormattedBookingTime() {
         return bookingTime.format(DateTimeFormatter.ofPattern("dd-MM-yyyy  HH:mm:ss"));
     }
 
     public String getVehicleTypeDisplay() {
-        if (vehicleType == null) return "-";
+        if (vehicleType == null) {
+            return "-";
+        }
+
         return switch (vehicleType) {
             case CAR -> "Car";
             case BUS -> "Bus";
@@ -73,36 +123,129 @@ public class Ticket {
         };
     }
 
-    public String      getTicketId()             { return ticketId; }
-    public LocalDateTime getBookingTime()         { return bookingTime; }
-    public String      getCustomerName()          { return customerName; }
-    public void        setCustomerName(String v)  { customerName = v; }
-    public String      getContactNumber()         { return contactNumber; }
-    public void        setContactNumber(String v) { contactNumber = v; }
-    public int         getNumberOfPeople()        { return numberOfPeople; }
-    public void        setNumberOfPeople(int v)   { numberOfPeople = v; }
-    public boolean     isLifeJacketRequired()     { return lifeJacketRequired; }
-    public void        setLifeJacketRequired(boolean v) { lifeJacketRequired = v; }
-    public int         getLifeJacketCount()       { return lifeJacketCount; }
-    public void        setLifeJacketCount(int v)  { lifeJacketCount = v; }
-    public boolean     isParkingRequired()        { return parkingRequired; }
-    public void        setParkingRequired(boolean v){ parkingRequired = v; }
-    public VehicleType getVehicleType()           { return vehicleType; }
-    public void        setVehicleType(VehicleType v){ vehicleType = v; }
-    public String      getVehicleNumber()         { return vehicleNumber; }
-    public void        setVehicleNumber(String v) { vehicleNumber = v; }
-    public BoatOwner   getBoatOwner()             { return boatOwner; }
-    public void        setBoatOwner(BoatOwner v)  { boatOwner = v; }
-    public String      getBookedBy()              { return bookedBy; }
-    public void        setBookedBy(String v)      { bookedBy = v; }
-    public int getRideDurationInHour()            { return rideDurationInHour;}
-    public void setRideDurationInHour(int rideDurationInHour) {this.rideDurationInHour = rideDurationInHour;}
-    public String getBoatHRNumber() { return boatHRNumber;}
-    public void setBoatHRNumber(String boatHRNumber) { this.boatHRNumber = boatHRNumber; }
-    public String getBoatHONumber() { return boatHONumber; }
-    public void setBoatHONumber(String boatHONumber) { this.boatHONumber = boatHONumber;}
-    public String getJetty() { return jetty;}
-    public void setJetty(String jetty) {this.jetty = jetty;}
+    public String getTicketId() {
+        return ticketId;
+    }
 
-    public enum VehicleType { CAR, BUS, TEMPOTRAVELLER }
+    public LocalDateTime getBookingTime() {
+        return bookingTime;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
+    }
+
+    public int getNumberOfPeople() {
+        return numberOfPeople;
+    }
+
+    public void setNumberOfPeople(int numberOfPeople) {
+        this.numberOfPeople = numberOfPeople;
+    }
+
+    public boolean isLifeJacketRequired() {
+        return lifeJacketRequired;
+    }
+
+    public void setLifeJacketRequired(boolean lifeJacketRequired) {
+        this.lifeJacketRequired = lifeJacketRequired;
+    }
+
+    public int getLifeJacketCount() {
+        return lifeJacketCount;
+    }
+
+    public void setLifeJacketCount(int lifeJacketCount) {
+        this.lifeJacketCount = lifeJacketCount;
+    }
+
+    public boolean isParkingRequired() {
+        return parkingRequired;
+    }
+
+    public void setParkingRequired(boolean parkingRequired) {
+        this.parkingRequired = parkingRequired;
+    }
+
+    public VehicleType getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(VehicleType vehicleType) {
+        this.vehicleType = vehicleType;
+    }
+
+    public String getVehicleNumber() {
+        return vehicleNumber;
+    }
+
+    public void setVehicleNumber(String vehicleNumber) {
+        this.vehicleNumber = vehicleNumber;
+    }
+
+    public BoatOwner getBoatOwner() {
+        return boatOwner;
+    }
+
+    public void setBoatOwner(BoatOwner boatOwner) {
+        this.boatOwner = boatOwner;
+    }
+
+    public String getBookedBy() {
+        return bookedBy;
+    }
+
+    public void setBookedBy(String bookedBy) {
+        this.bookedBy = bookedBy;
+    }
+
+    public int getRideDurationInHour() {
+        return rideDurationInHour;
+    }
+
+    public void setRideDurationInHour(int rideDurationInHour) {
+        this.rideDurationInHour = rideDurationInHour;
+    }
+
+    public String getBoatHRNumber() {
+        return boatHRNumber;
+    }
+
+    public void setBoatHRNumber(String boatHRNumber) {
+        this.boatHRNumber = boatHRNumber;
+    }
+
+    public String getBoatHONumber() {
+        return boatHONumber;
+    }
+
+    public void setBoatHONumber(String boatHONumber) {
+        this.boatHONumber = boatHONumber;
+    }
+
+    public String getJetty() {
+        return jetty;
+    }
+
+    public void setJetty(String jetty) {
+        this.jetty = jetty;
+    }
+
+    public enum VehicleType {
+        CAR,
+        BUS,
+        TEMPOTRAVELLER
+    }
 }
