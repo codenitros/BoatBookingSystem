@@ -38,7 +38,7 @@ public class LoginController {
                 errorLabel.setText("Error loading booking screen: " + e.getMessage());
             }
         } else {
-            errorLabel.setText("Invalid username or password.");
+            errorLabel.setText("Invalid usernames or password.");
             passwordField.clear();
             passwordField.requestFocus();
         }
