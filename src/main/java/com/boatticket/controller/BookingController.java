@@ -11,8 +11,10 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -20,11 +22,14 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.util.Pair;
 
 import java.io.File;
 import java.net.URL;
 import java.sql.ResultSet;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.UnaryOperator;
 
@@ -412,6 +417,15 @@ public class BookingController implements Initializable {
 
     @FXML
     private void handleBackup() {
+        Optional<Pair<LocalDate, LocalDate>> dateRange = showDateRangeDialog();
+
+        if (dateRange.isEmpty()) {
+            return;
+        }
+
+        LocalDate fromDate = dateRange.get().getKey();
+        LocalDate toDate = dateRange.get().getValue();
+
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Choose folder to export Excel file");
         directoryChooser.setInitialDirectory(
@@ -427,16 +441,84 @@ public class BookingController implements Initializable {
         }
 
         try {
-            DatabaseManager.getInstance().exportToExcel(
-                    directory.getAbsolutePath()
+            File exportedFile = DatabaseManager.getInstance().exportToExcel(
+                    directory.getAbsolutePath(),
+                    fromDate,
+                    toDate
             );
             showStatus(
-                    "Excel exported to: " + directory.getAbsolutePath(),
+                    "Excel exported (read-only) to: " + exportedFile.getAbsolutePath(),
                     true
             );
         } catch (Exception e) {
+            e.printStackTrace();
             showStatus("Export failed: " + e.getMessage(), false);
         }
+    }
+
+    /**
+     * Shows a dialog with two calendar (DatePicker) controls so the operator
+     * can choose the "from" and "to" dates for the Excel export. Defaults to
+     * the 1st of the current month through today.
+     *
+     * @return the chosen date range, or an empty Optional if cancelled
+     */
+    private Optional<Pair<LocalDate, LocalDate>> showDateRangeDialog() {
+        Dialog<Pair<LocalDate, LocalDate>> dialog = new Dialog<>();
+        dialog.setTitle("Export to Excel");
+        dialog.setHeaderText("Select the date range to export");
+
+        ButtonType exportButtonType = new ButtonType("Export", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(exportButtonType, ButtonType.CANCEL);
+
+        LocalDate today = LocalDate.now();
+        LocalDate firstOfMonth = today.withDayOfMonth(1);
+
+        DatePicker fromPicker = new DatePicker(firstOfMonth);
+        DatePicker toPicker = new DatePicker(today);
+        fromPicker.setPromptText("dd-MM-yyyy");
+        toPicker.setPromptText("dd-MM-yyyy");
+
+        Label validationLabel = new Label();
+        validationLabel.setStyle("-fx-text-fill: #c0392b; -fx-font-size: 11px;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(20, 20, 10, 10));
+        grid.add(new Label("From Date:"), 0, 0);
+        grid.add(fromPicker, 1, 0);
+        grid.add(new Label("To Date:"), 0, 1);
+        grid.add(toPicker, 1, 1);
+        grid.add(validationLabel, 0, 2, 2, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        Node exportButton = dialog.getDialogPane().lookupButton(exportButtonType);
+        exportButton.addEventFilter(ActionEvent.ACTION, event -> {
+            LocalDate from = fromPicker.getValue();
+            LocalDate to = toPicker.getValue();
+
+            if (from == null || to == null) {
+                validationLabel.setText("Please select both a 'From' and 'To' date.");
+                event.consume();
+            } else if (from.isAfter(to)) {
+                validationLabel.setText("'From' date cannot be after the 'To' date.");
+                event.consume();
+            } else if (to.isAfter(today)) {
+                validationLabel.setText("'To' date cannot be in the future.");
+                event.consume();
+            }
+        });
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == exportButtonType) {
+                return new Pair<>(fromPicker.getValue(), toPicker.getValue());
+            }
+            return null;
+        });
+
+        return dialog.showAndWait();
     }
 
     @FXML

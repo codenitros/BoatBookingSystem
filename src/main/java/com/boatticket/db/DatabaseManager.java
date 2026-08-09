@@ -24,6 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -41,6 +42,11 @@ public class DatabaseManager {
 
     private static final DateTimeFormatter TICKET_TIME_FORMAT =
             DateTimeFormatter.ofPattern("dd-MM-yyyy  HH:mm:ss");
+
+    // Password used to lock the exported sheet against editing.
+    // The operator only needs to view/print/share the file, never edit cells,
+    // so this password is intentionally not exposed anywhere in the UI.
+    private static final String EXPORT_PROTECTION_PASSWORD = "SBB-Honnavar-ReadOnly-2026";
 
     private static DatabaseManager instance;
 
@@ -296,11 +302,35 @@ public class DatabaseManager {
         }
     }
 
-    public void exportToExcel(String destinationDir) throws IOException, SQLException {
+    /**
+     * Exports tickets booked between fromDate and toDate (inclusive) to a
+     * read-only .xlsx file. The sheet is protected (no password given to
+     * the operator) so the file can only be viewed, printed, and shared —
+     * not edited.
+     *
+     /**
+     * Exports tickets booked between fromDate and toDate (inclusive) to a
+     * read-only .xlsx file. The sheet is protected (no password given to
+     * the operator) so the file can only be viewed, printed, and shared —
+     * not edited.
+     *
+     * @return the exported File
+     */
+    public File exportToExcel(String destinationDir, LocalDate fromDate, LocalDate toDate)
+            throws IOException, SQLException {
+
         String timestamp = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 
-        Path filePath = Path.of(destinationDir, "tickets_export_" + timestamp + ".xlsx");
+        String rangeLabel =
+                fromDate.format(DateTimeFormatter.ofPattern("ddMMyyyy")) +
+                        "_to_" +
+                        toDate.format(DateTimeFormatter.ofPattern("ddMMyyyy"));
+
+        Path filePath = Path.of(
+                destinationDir,
+                "tickets_export_" + rangeLabel + "_" + timestamp + ".xlsx"
+        );
 
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Tickets");
@@ -324,6 +354,9 @@ public class DatabaseManager {
                 cell.setCellValue(headers[index]);
             }
 
+            int rowNumber = 1;
+            int totalParkingFee = 0;
+
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement(
                          "SELECT t.ticket_id, t.booking_time, t.customer_name, " +
@@ -334,12 +367,24 @@ public class DatabaseManager {
                  );
                  ResultSet resultSet = statement.executeQuery()) {
 
-                int rowNumber = 1;
-
+                // booking_time is stored as free-text "dd-MM-yyyy  HH:mm:ss",
+                // which does not sort/filter correctly as a SQL string
+                // comparison, so the date range is applied here in Java
+                // after parsing each row with the same formatter used to
+                // write it.
                 while (resultSet.next()) {
+                    String bookingTimeText = resultSet.getString("booking_time");
+                    LocalDate bookingDate = parseBookingDate(bookingTimeText);
+
+                    if (bookingDate == null
+                            || bookingDate.isBefore(fromDate)
+                            || bookingDate.isAfter(toDate)) {
+                        continue;
+                    }
+
                     Row row = sheet.createRow(rowNumber++);
                     row.createCell(0).setCellValue(resultSet.getString("ticket_id"));
-                    row.createCell(1).setCellValue(resultSet.getString("booking_time"));
+                    row.createCell(1).setCellValue(bookingTimeText);
                     row.createCell(2).setCellValue(resultSet.getString("customer_name"));
                     row.createCell(3).setCellValue(resultSet.getString("contact_number"));
                     row.createCell(4).setCellValue(resultSet.getInt("num_people"));
@@ -347,29 +392,49 @@ public class DatabaseManager {
                     row.createCell(6).setCellValue(resultSet.getInt("total_fee"));
                     row.createCell(7).setCellValue(resultSet.getString("driver_name"));
                     row.createCell(8).setCellValue(resultSet.getInt("parking_fee"));
-                }
 
-                Row totalRow = sheet.createRow(rowNumber + 1);
-                totalRow.createCell(0).setCellValue("Total Money Collected at Counter:");
-
-                try (PreparedStatement totalStatement = connection.prepareStatement(
-                        "SELECT SUM(parking_fee) AS total FROM tickets"
-                );
-                     ResultSet totalResultSet = totalStatement.executeQuery()) {
-
-                    if (totalResultSet.next()) {
-                        totalRow.createCell(1).setCellValue(totalResultSet.getInt("total"));
-                    }
+                    totalParkingFee += resultSet.getInt("parking_fee");
                 }
             }
+
+            Row totalRow = sheet.createRow(rowNumber + 1);
+            totalRow.createCell(0).setCellValue("Total Money Collected at Counter:");
+            totalRow.createCell(1).setCellValue(totalParkingFee);
+
+            Row rangeRow = sheet.createRow(rowNumber + 2);
+            rangeRow.createCell(0).setCellValue("Date Range:");
+            rangeRow.createCell(1).setCellValue(
+                    fromDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) +
+                            "  to  " +
+                            toDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            );
 
             for (int index = 0; index < headers.length; index++) {
                 sheet.autoSizeColumn(index);
             }
 
-            try (FileOutputStream outputStream = new FileOutputStream(filePath.toFile())) {
+            // --- Lock the file down to read-only: viewable, printable, and
+            // shareable, but not editable in Excel/LibreOffice/etc. ---
+            sheet.protectSheet(EXPORT_PROTECTION_PASSWORD);
+
+            File exportedFile = filePath.toFile();
+
+            try (FileOutputStream outputStream = new FileOutputStream(exportedFile)) {
                 workbook.write(outputStream);
             }
+
+            return exportedFile;
+        }
+    }
+    private LocalDate parseBookingDate(String bookingTimeText) {
+        if (bookingTimeText == null || bookingTimeText.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LocalDateTime.parse(bookingTimeText.trim(), TICKET_TIME_FORMAT).toLocalDate();
+        } catch (Exception e) {
+            return null;
         }
     }
 
