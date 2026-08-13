@@ -40,6 +40,20 @@
             <artifactId>itextpdf</artifactId>
             <version>5.5.13.3</version>
         </dependency>
+        <!-- BouncyCastle - required internally by iText 5's PDF encryption
+             (setEncryption / AES-128). Without this, PdfWriter.setEncryption
+             throws NoClassDefFoundError: org/bouncycastle/asn1/ASN1Encodable
+             and no PDF bytes ever get written. -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.70</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk15on</artifactId>
+            <version>1.70</version>
+        </dependency>
         <!-- BCrypt for password hashing -->
         <dependency>
             <groupId>org.mindrot</groupId>
@@ -61,14 +75,14 @@
 
     <build>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.openjfx</groupId>-->
-<!--                <artifactId>javafx-maven-plugin</artifactId>-->
-<!--                <version>0.0.8</version>-->
-<!--                <configuration>-->
-<!--                    <mainClass>com.boatticket.MainApp</mainClass>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.openjfx</groupId>-->
+            <!--                <artifactId>javafx-maven-plugin</artifactId>-->
+            <!--                <version>0.0.8</version>-->
+            <!--                <configuration>-->
+            <!--                    <mainClass>com.boatticket.MainApp</mainClass>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

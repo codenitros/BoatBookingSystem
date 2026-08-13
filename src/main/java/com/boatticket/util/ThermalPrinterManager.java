@@ -1,34 +1,119 @@
 package com.boatticket.util;
 
+import com.boatticket.config.ConfigManager;
 import com.boatticket.model.Ticket;
 import javax.print.*;
 import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.standard.Copies;
 import java.io.IOException;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ThermalPrinterManager {
 
     private static final int LINE_WIDTH = 32; // 80mm thermal printer ~32 chars
     private static final String SEPARATOR = "================================";
 
+    // Printer names that are virtual "print to file" destinations, not
+    // real thermal/receipt printers. If the resolved printer's name
+    // contains any of these (case-insensitive), we refuse to print to
+    // it rather than silently generating a PDF/XPS/etc.
+    private static final String[] VIRTUAL_PRINTER_KEYWORDS = {
+            "microsoft print to pdf",
+            "microsoft xps document writer",
+            "onenote",
+            "send to onenote",
+            "fax"
+    };
+
     /**
-     * Get system default printer
+     * Resolves which printer to send the ticket to.
+     * <p>
+     * - If {@code printer.name} is set in Config.properties, that exact
+     *   printer (matched case-insensitively) is used. This is the
+     *   recommended setup for a deployed ticket counter, so printing
+     *   never depends on whatever Windows happens to have set as its
+     *   default printer.
+     * - Otherwise, falls back to the system default printer — but
+     *   refuses to use it if it's a known virtual/PDF-style printer
+     *   (e.g. "Microsoft Print to PDF"), since that indicates the
+     *   Windows default printer is misconfigured for this app rather
+     *   than the app doing anything wrong.
      */
-    public static PrintService getDefaultPrinter() throws PrintException {
+    public static PrintService resolvePrinter() throws PrintException {
+        PrintService[] allPrinters = PrintServiceLookup.lookupPrintServices(null, null);
+        String configuredName = ConfigManager.getPrinterName();
+
+        if (!configuredName.isEmpty()) {
+            for (PrintService printer : allPrinters) {
+                if (printer.getName().equalsIgnoreCase(configuredName)) {
+                    return printer;
+                }
+            }
+            throw new PrintException(
+                    "Configured printer \"" + configuredName + "\" (printer.name in " +
+                            "Config.properties) was not found. Available printers: " +
+                            listPrinterNames(allPrinters)
+            );
+        }
+
         PrintService defaultPrinter = PrintServiceLookup.lookupDefaultPrintService();
         if (defaultPrinter == null) {
             throw new PrintException("No default printer found on the system");
         }
+
+        if (isVirtualPrinter(defaultPrinter.getName())) {
+            throw new PrintException(
+                    "The Windows default printer is \"" + defaultPrinter.getName() +
+                            "\", which creates a file instead of printing to a real device. " +
+                            "Either set that machine's default printer to the actual thermal " +
+                            "printer, or set printer.name=<exact printer name> in Config.properties. " +
+                            "Available printers: " + listPrinterNames(allPrinters)
+            );
+        }
+
         return defaultPrinter;
     }
 
+    /**
+     * @deprecated use {@link #resolvePrinter()}, which also honours
+     * printer.name from Config.properties and rejects virtual/PDF printers.
+     * Kept only in case anything external still calls it directly.
+     */
+    @Deprecated
+    public static PrintService getDefaultPrinter() throws PrintException {
+        return resolvePrinter();
+    }
+
+    private static boolean isVirtualPrinter(String printerName) {
+        if (printerName == null) {
+            return false;
+        }
+        String lower = printerName.toLowerCase(Locale.ROOT);
+        for (String keyword : VIRTUAL_PRINTER_KEYWORDS) {
+            if (lower.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String listPrinterNames(PrintService[] printers) {
+        if (printers == null || printers.length == 0) {
+            return "(none found)";
+        }
+        return Stream.of(printers)
+                .map(PrintService::getName)
+                .collect(Collectors.joining(", "));
+    }
 
     /**
-     * Print ticket to system default printer
+     * Print ticket to the resolved printer (see {@link #resolvePrinter()}).
      */
     public static String printTicket(Ticket ticket) throws PrintException, IOException {
-        PrintService selectedPrinter = getDefaultPrinter();
+        PrintService selectedPrinter = resolvePrinter();
 
         String content = formatTicketContent(ticket);
         byte[] bytes = content.getBytes("UTF-8");
@@ -36,9 +121,9 @@ public class ThermalPrinterManager {
         // Try different flavors to find one supported by the printer
         DocFlavor flavor = null;
         DocFlavor[] tryFlavors = {
-            DocFlavor.BYTE_ARRAY.TEXT_PLAIN_UTF_8,
-            DocFlavor.BYTE_ARRAY.AUTOSENSE,
-            DocFlavor.INPUT_STREAM.AUTOSENSE
+                DocFlavor.BYTE_ARRAY.TEXT_PLAIN_UTF_8,
+                DocFlavor.BYTE_ARRAY.AUTOSENSE,
+                DocFlavor.INPUT_STREAM.AUTOSENSE
         };
 
         for (DocFlavor tryFlavor : tryFlavors) {
@@ -204,4 +289,3 @@ public class ThermalPrinterManager {
         return date + " " + time;
     }
 }
-
