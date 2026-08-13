@@ -205,9 +205,6 @@
                         styleClass="btn-primary" onAction="#handleGenerateTicket"/>
             </HBox>
 
-            <Label styleClass="hint-text"
-                   text="Use Backup button to export a copy anytime."
-                   wrapText="true"/>
 
             <VBox style="-fx-padding:0 0 10 0;"/>
         </VBox>

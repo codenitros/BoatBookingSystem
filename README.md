@@ -86,7 +86,7 @@ BoatTicketSystem/
 │           ├── login.fxml           ← Login UI layout
 │           ├── booking.fxml         ← Booking UI layout
 │           └── styles.css           ← Styling
-└── .idea/runConfigurations/         ← Pre-built IntelliJ run config
+└── .idea/runConfigurations/         ← Pre-built IntelliJ run com.boatticket.config
 ```
 
 ---

@@ -1,6 +1,7 @@
 package com.boatticket.controller;
 
 import com.boatticket.MainApp;
+import com.boatticket.config.ConfigManager;
 import com.boatticket.db.DatabaseManager;
 import com.boatticket.model.BoatOwner;
 import com.boatticket.model.Ticket;
@@ -295,10 +296,10 @@ public class BookingController implements Initializable {
         int duration = getDurationFromUI();
 
         int boatFee = duration == 2
-                ? Ticket.BOAT_RIDE_FEE_2HOURS
-                : Ticket.BOAT_RIDE_FEE_PER_HOUR * duration;
+                ? ConfigManager.getBoatRideFee2Hours()
+                : ConfigManager.getBoatRideFeePerHour() * duration;
 
-        int jacketFee = Ticket.LIFE_JACKET_FEE * people;
+        int jacketFee = ConfigManager.getLifeJacketFee() * people;
         int parkingFee = getParkingFeeFromUI();
         int amountToDriver = boatFee + jacketFee;
         int total = amountToDriver + parkingFee;
@@ -329,9 +330,9 @@ public class BookingController implements Initializable {
         }
 
         return switch (vehicleType) {
-            case CAR -> Ticket.PARKING_FEE_CAR;
-            case BUS -> Ticket.PARKING_FEE_BUS;
-            case TEMPOTRAVELLER -> Ticket.PARKING_FEE_TEMPOTRAVELLER;
+            case CAR -> ConfigManager.getParkingFeeCar();
+            case BUS -> ConfigManager.getParkingFeeBus();
+            case TEMPOTRAVELLER -> ConfigManager.getParkingFeeTempoTraveller();
         };
     }
 
@@ -384,7 +385,7 @@ public class BookingController implements Initializable {
             return;
         }
 
-        generatePdfAndPrint(ticket);
+        printTicketOnly(ticket);
     }
 
     @FXML
@@ -427,7 +428,7 @@ public class BookingController implements Initializable {
         LocalDate toDate = dateRange.get().getValue();
 
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Choose folder to export Excel file");
+        directoryChooser.setTitle("Choose folder to save the ticket report PDF");
         directoryChooser.setInitialDirectory(
                 new File(System.getProperty("user.home"))
         );
@@ -441,32 +442,51 @@ public class BookingController implements Initializable {
         }
 
         try {
-            File exportedFile = DatabaseManager.getInstance().exportToExcel(
+            File exportedFile = DatabaseManager.getInstance().exportToPdfReport(
                     directory.getAbsolutePath(),
                     fromDate,
                     toDate
             );
             showStatus(
-                    "Excel exported (read-only) to: " + exportedFile.getAbsolutePath(),
+                    "Report saved (password protected) to: " + exportedFile.getAbsolutePath(),
                     true
             );
         } catch (Exception e) {
             e.printStackTrace();
-            showStatus("Export failed: " + e.getMessage(), false);
+
+            // Build the full cause chain so the real root exception is
+            // visible even if it's wrapped by another exception.
+            StringBuilder details = new StringBuilder();
+            Throwable current = e;
+            while (current != null) {
+                details.append(current.getClass().getSimpleName())
+                        .append(": ")
+                        .append(current.getMessage())
+                        .append("\n");
+                current = current.getCause();
+            }
+
+            showStatus("Export failed — see popup for details.", false);
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Export Failed");
+            alert.setHeaderText("Could not generate the PDF report");
+            alert.setContentText(details.toString());
+            alert.showAndWait();
         }
     }
 
     /**
-     * Shows a dialog with two calendar (DatePicker) controls so the operator
-     * can choose the "from" and "to" dates for the Excel export. Defaults to
-     * the 1st of the current month through today.
+     * Shows a dialog with two calendar (DatePicker) controls for a custom
+     * date range, plus quick-range buttons (1 Day / 3 Days / 1 Week /
+     * 1 Month) that immediately export using a rolling range ending today.
      *
      * @return the chosen date range, or an empty Optional if cancelled
      */
     private Optional<Pair<LocalDate, LocalDate>> showDateRangeDialog() {
         Dialog<Pair<LocalDate, LocalDate>> dialog = new Dialog<>();
-        dialog.setTitle("Export to Excel");
-        dialog.setHeaderText("Select the date range to export");
+        dialog.setTitle("Export Ticket Report (PDF)");
+        dialog.setHeaderText("Pick a custom date range, or use a quick option below");
 
         ButtonType exportButtonType = new ButtonType("Export", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(exportButtonType, ButtonType.CANCEL);
@@ -485,14 +505,46 @@ public class BookingController implements Initializable {
         GridPane grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(12);
-        grid.setPadding(new Insets(20, 20, 10, 10));
+        grid.setPadding(new Insets(20, 20, 4, 10));
         grid.add(new Label("From Date:"), 0, 0);
         grid.add(fromPicker, 1, 0);
         grid.add(new Label("To Date:"), 0, 1);
         grid.add(toPicker, 1, 1);
         grid.add(validationLabel, 0, 2, 2, 1);
 
-        dialog.getDialogPane().setContent(grid);
+        Label quickLabel = new Label("Quick ranges (exports immediately):");
+        quickLabel.setStyle("-fx-font-weight: bold; -fx-padding: 6 0 0 0;");
+
+        Button oneDayBtn = new Button("1 Day");
+        Button threeDaysBtn = new Button("3 Days");
+        Button oneWeekBtn = new Button("1 Week");
+        Button oneMonthBtn = new Button("1 Month");
+
+        HBox quickButtons = new HBox(8, oneDayBtn, threeDaysBtn, oneWeekBtn, oneMonthBtn);
+
+        VBox content = new VBox(10, grid, quickLabel, quickButtons);
+        content.setPadding(new Insets(4, 20, 12, 20));
+
+        dialog.getDialogPane().setContent(content);
+
+        // Quick-range buttons set the result and close the dialog right
+        // away, without needing the "Export" button.
+        oneDayBtn.setOnAction(event -> {
+            dialog.setResult(new Pair<>(today, today));
+            dialog.close();
+        });
+        threeDaysBtn.setOnAction(event -> {
+            dialog.setResult(new Pair<>(today.minusDays(2), today));
+            dialog.close();
+        });
+        oneWeekBtn.setOnAction(event -> {
+            dialog.setResult(new Pair<>(today.minusDays(6), today));
+            dialog.close();
+        });
+        oneMonthBtn.setOnAction(event -> {
+            dialog.setResult(new Pair<>(today.minusDays(29), today));
+            dialog.close();
+        });
 
         Node exportButton = dialog.getDialogPane().lookupButton(exportButtonType);
         exportButton.addEventFilter(ActionEvent.ACTION, event -> {
@@ -612,37 +664,79 @@ public class BookingController implements Initializable {
     }
 
     private void reprintTicket(Ticket ticket) {
-        generatePdfAndPrint(ticket);
+        printToThermalAndMaybePdf(ticket, "Reprinting");
     }
 
     /**
-     * Generates the ticket PDF and saves it to the Downloads/BoatTickets
-     * folder (it is NOT opened automatically). Also attempts to send the
-     * ticket to the thermal/system printer as a best-effort secondary step
-     * so a missing or misconfigured printer never blocks the PDF.
+     * Used by the main "Print" button. Sends the ticket straight to the
+     * thermal/system printer.
      */
-    private void generatePdfAndPrint(Ticket ticket) {
-        File pdfFile;
+    private void printTicketOnly(Ticket ticket) {
+        printToThermalAndMaybePdf(ticket, "Printing");
+    }
 
-        try {
-            pdfFile = PdfTicketManager.generateTicketPdf(ticket);
-            showStatus(
-                    "Ticket " + ticket.getTicketId() + " saved to: " + pdfFile.getAbsolutePath(),
-                    true
-            );
-        } catch (Exception e) {
-            e.printStackTrace();
-            showStatus("Failed to create PDF ticket: " + e.getMessage(), false);
-            return;
+    /**
+     * Shared by both the main "Print" button and the "Reprint" button
+     * (from the Today's Tickets list). Always sends the ticket to the
+     * thermal/system printer. Whether a reference PDF also gets
+     * generated is controlled ENTIRELY by {@link ConfigManager#isDevMode()}
+     * (backed by the external Config.properties) — there is no other path
+     * in this class that creates a PDF, so this one flag governs both
+     * buttons:
+     * <p>
+     * - dev.mode=true  (development machine): a reference PDF is also
+     *   saved to Downloads/BoatTickets, best-effort, purely so we can
+     *   check the output. It is never opened automatically and never
+     *   blocks or fails the thermal print.
+     * - dev.mode=false (deployed/client machine): no PDF is generated
+     *   under any circumstance — thermal print only, for both Print
+     *   and Reprint.
+     * <p>
+     * Shows an immediate "printing" status message before attempting the
+     * print job, then updates it with the result.
+     *
+     * @param ticket      the ticket to print
+     * @param actionLabel verb shown in the status message, e.g.
+     *                    "Printing" or "Reprinting"
+     */
+    private void printToThermalAndMaybePdf(Ticket ticket, String actionLabel) {
+        showStatus(
+                actionLabel + " ticket " + ticket.getTicketId() + " to thermal printer...",
+                true
+        );
+
+        // Dev-only reference PDF — controlled by Config.properties (dev.mode).
+        // Best-effort: never blocks or overrides the thermal print result,
+        // and never runs at all when dev.mode=false.
+        if (ConfigManager.isDevMode()) {
+            try {
+                File referencePdf = PdfTicketManager.generateTicketPdf(ticket);
+                System.out.println("[DEV MODE] Reference PDF saved to: "
+                        + referencePdf.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         try {
             ThermalPrinterManager.printTicket(ticket);
             ThermalPrinterManager.printTicketToConsole(ticket);
+            showStatus(
+                    "Ticket " + ticket.getTicketId() + " is printing on the thermal printer.",
+                    true
+            );
         } catch (Exception e) {
-            // Thermal printing is best-effort only; do not block on it or
-            // overwrite the PDF status message with a printer error.
+            // Full technical detail (which printer, why it was rejected,
+            // list of available printers, etc.) goes to the console only
+            // — for us to debug. The operator just needs to know the
+            // print didn't go through and to check the printer.
+            System.err.println("Thermal print failed for ticket " + ticket.getTicketId() + ": " + e.getMessage());
             e.printStackTrace();
+            showStatus(
+                    "Could not print ticket " + ticket.getTicketId() +
+                            ". Please check the thermal printer and try again.",
+                    false
+            );
         }
     }
 

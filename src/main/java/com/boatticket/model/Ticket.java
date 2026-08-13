@@ -1,17 +1,12 @@
 package com.boatticket.model;
 
+import com.boatticket.config.ConfigManager;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 public class Ticket {
-
-    public static final int BOAT_RIDE_FEE_PER_HOUR = 1500;
-    public static final int BOAT_RIDE_FEE_2HOURS = 2500;
-    public static final int LIFE_JACKET_FEE = 10;
-    public static final int PARKING_FEE_CAR = 20;
-    public static final int PARKING_FEE_BUS = 50;
-    public static final int PARKING_FEE_TEMPOTRAVELLER = 35;
 
     private final String ticketId;
     private final LocalDateTime bookingTime;
@@ -54,10 +49,10 @@ public class Ticket {
         }
 
         if (rideDurationInHour == 2) {
-            return BOAT_RIDE_FEE_2HOURS;
+            return ConfigManager.getBoatRideFee2Hours();
         }
 
-        return BOAT_RIDE_FEE_PER_HOUR * rideDurationInHour;
+        return ConfigManager.getBoatRideFeePerHour() * rideDurationInHour;
     }
 
     public int getLifeJacketFee() {
@@ -65,7 +60,7 @@ public class Ticket {
             return storedLifeJacketFee;
         }
 
-        return lifeJacketRequired ? LIFE_JACKET_FEE * lifeJacketCount : 0;
+        return lifeJacketRequired ? ConfigManager.getLifeJacketFee() * lifeJacketCount : 0;
     }
 
     public int getParkingFee() {
@@ -78,9 +73,9 @@ public class Ticket {
         }
 
         return switch (vehicleType) {
-            case CAR -> PARKING_FEE_CAR;
-            case BUS -> PARKING_FEE_BUS;
-            case TEMPOTRAVELLER -> PARKING_FEE_TEMPOTRAVELLER;
+            case CAR -> ConfigManager.getParkingFeeCar();
+            case BUS -> ConfigManager.getParkingFeeBus();
+            case TEMPOTRAVELLER -> ConfigManager.getParkingFeeTempoTraveller();
         };
     }
 

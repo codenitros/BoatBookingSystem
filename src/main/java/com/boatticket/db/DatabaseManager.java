@@ -2,6 +2,8 @@ package com.boatticket.db;
 
 import com.boatticket.model.BoatOwner;
 import com.boatticket.model.Ticket;
+import com.boatticket.model.TicketReport;
+import com.boatticket.util.PdfReportManager;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -47,6 +49,11 @@ public class DatabaseManager {
     // The operator only needs to view/print/share the file, never edit cells,
     // so this password is intentionally not exposed anywhere in the UI.
     private static final String EXPORT_PROTECTION_PASSWORD = "SBB-Honnavar-ReadOnly-2026";
+
+    // Password required to OPEN the encrypted PDF ticket report at all.
+    // Never shown anywhere in the UI — the operator can save/share the
+    // file, but cannot open it without this password.
+    private static final String REPORT_OPEN_PASSWORD = "Doddamma";
 
     private static DatabaseManager instance;
 
@@ -308,12 +315,6 @@ public class DatabaseManager {
      * the operator) so the file can only be viewed, printed, and shared —
      * not edited.
      *
-     /**
-     * Exports tickets booked between fromDate and toDate (inclusive) to a
-     * read-only .xlsx file. The sheet is protected (no password given to
-     * the operator) so the file can only be viewed, printed, and shared —
-     * not edited.
-     *
      * @return the exported File
      */
     public File exportToExcel(String destinationDir, LocalDate fromDate, LocalDate toDate)
@@ -426,6 +427,7 @@ public class DatabaseManager {
             return exportedFile;
         }
     }
+
     private LocalDate parseBookingDate(String bookingTimeText) {
         if (bookingTimeText == null || bookingTimeText.isBlank()) {
             return null;
@@ -436,6 +438,99 @@ public class DatabaseManager {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * Fetches all tickets whose booking date falls within fromDate..toDate
+     * (inclusive), flattened into simple report rows. Shared by both the
+     * Excel and PDF report exporters.
+     */
+    private List<TicketReport> fetchTicketsInRange(LocalDate fromDate, LocalDate toDate)
+            throws SQLException {
+
+        List<TicketReport> rows = new ArrayList<>();
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT t.ticket_id, t.booking_time, t.customer_name, " +
+                             "t.contact_number, t.num_people, t.ride_duration_hour, " +
+                             "t.total_fee, b.driver_name, t.parking_fee " +
+                             "FROM tickets t LEFT JOIN boats b ON t.boat_id = b.id " +
+                             "ORDER BY t.booking_time DESC"
+             );
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                String bookingTimeText = resultSet.getString("booking_time");
+                LocalDate bookingDate = parseBookingDate(bookingTimeText);
+
+                if (bookingDate == null
+                        || bookingDate.isBefore(fromDate)
+                        || bookingDate.isAfter(toDate)) {
+                    continue;
+                }
+
+                rows.add(new TicketReport(
+                        resultSet.getString("ticket_id"),
+                        bookingTimeText,
+                        resultSet.getString("customer_name"),
+                        resultSet.getString("contact_number"),
+                        resultSet.getInt("num_people"),
+                        resultSet.getInt("ride_duration_hour"),
+                        resultSet.getInt("total_fee"),
+                        resultSet.getString("driver_name"),
+                        resultSet.getInt("parking_fee")
+                ));
+            }
+        }
+
+        return rows;
+    }
+
+    /**
+     * Exports tickets booked between fromDate and toDate (inclusive) to a
+     * genuinely password-protected PDF report (real PDF encryption — the
+     * file cannot be opened in any PDF reader without the password). The
+     * password is never shown anywhere in the UI; the operator can still
+     * save the file wherever they like and share it with others, but
+     * cannot open it themselves without the password.
+     *
+     * @return the exported File
+     */
+    public File exportToPdfReport(String destinationDir, LocalDate fromDate, LocalDate toDate)
+            throws Exception {
+
+        List<TicketReport> rows = fetchTicketsInRange(fromDate, toDate);
+
+        int totalParkingFee = 0;
+
+        for (TicketReport row : rows) {
+            totalParkingFee += row.getParkingFee();
+        }
+
+        String timestamp = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+
+        String rangeLabel =
+                fromDate.format(DateTimeFormatter.ofPattern("ddMMyyyy")) +
+                        "_to_" +
+                        toDate.format(DateTimeFormatter.ofPattern("ddMMyyyy"));
+
+        File destinationFile = new File(
+                destinationDir,
+                "tickets_report_" + rangeLabel + "_" + timestamp + ".pdf"
+        );
+
+        PdfReportManager.generatePasswordProtectedReport(
+                destinationFile,
+                rows,
+                fromDate,
+                toDate,
+                totalParkingFee,
+                REPORT_OPEN_PASSWORD
+        );
+
+        return destinationFile;
     }
 
     public String getDbPath() {
