@@ -111,7 +111,10 @@
                         <googleJavaFormat>
                             <version>1.17.0</version>
                         </googleJavaFormat>
-                        <target>src/main/java/**/*.java,src/test/java/**/*.java</target>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                            <include>src/test/java/**/*.java</include>
+                        </includes>
                     </java>
                 </configuration>
             </plugin>
