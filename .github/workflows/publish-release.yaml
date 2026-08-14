@@ -64,7 +64,7 @@ jobs:
             throw "Set the RELEASE_REPO_TOKEN Actions secret with Contents read/write access to the release repository."
           }
 
-          $projectVersion = mvn -q help:evaluate -Dexpression=project.version -DforceStdout
+          $projectVersion = (& mvn -q help:evaluate -Dexpression=project.version -DforceStdout).Trim()
           if ("${{ github.event_name }}" -eq "push") {
             $releaseVersion = "${{ github.ref_name }}".TrimStart("v")
           } else {
