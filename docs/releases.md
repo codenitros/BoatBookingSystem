@@ -28,9 +28,10 @@ new `metadata/stable.json` to a different repository.
 1. Change `<version>` in `pom.xml` to the next semantic version, such as `1.1.0`.
 2. Merge that change to `main`.
 3. Create and push the matching annotated tag, for example `v1.1.0`.
-4. The **Publish Windows release** workflow runs on Windows, verifies formatting, creates a
-   self-contained per-user MSI, uploads it to the public releases repository, and updates the
-   stable manifest.
+4. The **Publish Windows release** workflow runs on Windows, verifies formatting, downloads the
+   matching JavaFX Windows JMODs, and creates a self-contained per-user MSI containing the Java 17
+   and JavaFX runtimes. It then uploads the installer to the public releases repository and updates
+   the stable manifest.
 
 For a deliberate manual release, use **Actions → Publish Windows release → Run workflow** and enter
 the exact version from `pom.xml`.

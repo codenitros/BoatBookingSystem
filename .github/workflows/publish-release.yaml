@@ -32,6 +32,21 @@ jobs:
           java-version: "17"
           cache: maven
 
+      - name: Download matching JavaFX Windows JMODs
+        id: javafx
+        shell: pwsh
+        run: |
+          $javafxVersion = "17.0.18"
+          $archive = "openjfx-$javafxVersion`_windows-x64_bin-jmods.zip"
+          $url = "https://download2.gluonhq.com/openjfx/$javafxVersion/$archive"
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          Expand-Archive -Path $archive -DestinationPath javafx-jmods
+          $jmods = Get-ChildItem javafx-jmods -Directory -Filter "javafx-jmods-*" | Select-Object -First 1
+          if ($null -eq $jmods) {
+            throw "The JavaFX JMOD archive did not contain a javafx-jmods directory."
+          }
+          "path=$($jmods.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Install WiX for MSI packaging
         shell: pwsh
         run: |
@@ -77,6 +92,9 @@ jobs:
             --input target `
             --main-jar HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar `
             --main-class com.boatticket.MainApp `
+            --module-path "$env:JAVA_HOME\jmods;${{ steps.javafx.outputs.path }}" `
+            --add-modules "javafx.controls,javafx.fxml" `
+            --java-options "--add-modules=javafx.controls,javafx.fxml" `
             --dest dist `
             --win-per-user-install `
             --win-menu `
