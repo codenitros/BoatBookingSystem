@@ -1,0 +1,118 @@
+name: Publish Windows release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (must match pom.xml, for example 1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    env:
+      RELEASE_REPOSITORY: ${{ vars.RELEASE_REPOSITORY }}
+      GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+      JPACKAGE_UPGRADE_UUID: 616ff3db-c1ac-4a4c-ac3a-7a75bfd55c75
+    steps:
+      - name: Check out application source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Install WiX for MSI packaging
+        shell: pwsh
+        run: |
+          choco install wixtoolset --version 3.11.2 --yes --no-progress
+          "C:\Program Files (x86)\WiX Toolset v3.11\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Validate release configuration
+        id: release
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RELEASE_REPOSITORY)) {
+            throw "Set the RELEASE_REPOSITORY Actions variable to owner/BoatBookingSystemReleases."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
+            throw "Set the RELEASE_REPO_TOKEN Actions secret with Contents read/write access to the release repository."
+          }
+
+          $projectVersion = mvn -q help:evaluate -Dexpression=project.version -DforceStdout
+          if ("${{ github.event_name }}" -eq "push") {
+            $releaseVersion = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $releaseVersion = "${{ inputs.version }}"
+          }
+          if ($projectVersion -ne $releaseVersion) {
+            throw "Release version '$releaseVersion' must match pom.xml version '$projectVersion'."
+          }
+          "version=$releaseVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Verify and build application JAR
+        shell: pwsh
+        run: |
+          mvn -B -V -q com.diffplug.spotless:spotless-maven-plugin:2.31.0:check
+          mvn -B -V -q clean verify
+
+      - name: Build per-user MSI installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          jpackage `
+            --type msi `
+            --name BoatBookingSystem `
+            --app-version "${{ steps.release.outputs.version }}" `
+            --input target `
+            --main-jar HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar `
+            --main-class com.boatticket.MainApp `
+            --dest dist `
+            --win-per-user-install `
+            --win-menu `
+            --win-shortcut `
+            --win-upgrade-uuid $env:JPACKAGE_UPGRADE_UUID
+
+      - name: Check out public release repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.RELEASE_REPOSITORY }}
+          token: ${{ secrets.RELEASE_REPO_TOKEN }}
+          path: release-repository
+
+      - name: Publish installer and update manifest
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem dist -Filter *.msi | Select-Object -First 1
+          if ($null -eq $installer) {
+            throw "MSI installer was not produced."
+          }
+          $version = "${{ steps.release.outputs.version }}"
+          gh release create "v$version" $installer.FullName --repo $env:RELEASE_REPOSITORY --title "Boat Booking System $version" --generate-notes
+
+          $sha256 = (Get-FileHash -Path $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifest = [ordered]@{
+            version = $version
+            publishedAt = (Get-Date).ToUniversalTime().ToString("o")
+            installerUrl = "https://github.com/$env:RELEASE_REPOSITORY/releases/download/v$version/$($installer.Name)"
+            sha256 = $sha256
+          } | ConvertTo-Json
+          New-Item -ItemType Directory -Force -Path release-repository\metadata | Out-Null
+          Set-Content -Path release-repository\metadata\stable.json -Value $manifest -NoNewline
+
+          Set-Location release-repository
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata/stable.json
+          git commit -m "Publish release $version"
+          git push
