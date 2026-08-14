@@ -77,7 +77,10 @@ jobs:
             throw "Set the RELEASE_REPO_TOKEN Actions secret with Contents read/write access to the release repository."
           }
 
-          $projectVersion = $(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          [xml]$pom = Get-Content -Raw pom.xml
+          $namespaceManager = New-Object System.Xml.XmlNamespaceManager($pom.NameTable)
+          $namespaceManager.AddNamespace("m", "http://maven.apache.org/POM/4.0.0")
+          $projectVersion = $pom.SelectSingleNode("/m:project/m:version", $namespaceManager).InnerText.Trim()
           if ("${{ github.event_name }}" -eq "push") {
             $releaseVersion = "${{ github.ref_name }}".TrimStart("v")
           } else {
