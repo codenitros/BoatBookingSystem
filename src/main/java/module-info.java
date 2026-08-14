@@ -2,6 +2,7 @@ module com.boatticket {
   requires javafx.controls;
   requires javafx.fxml;
   requires java.desktop;
+  requires java.net.http;
   requires java.sql;
   requires itextpdf;
   requires org.xerial.sqlitejdbc;
