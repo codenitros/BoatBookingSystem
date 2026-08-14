@@ -47,11 +47,24 @@ jobs:
           }
           "path=$($jmods.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Install WiX for MSI packaging
+      - name: Ensure WiX tools are available for MSI packaging
         shell: pwsh
         run: |
-          choco install wixtoolset --version 3.11.2 --yes --no-progress
-          "C:\Program Files (x86)\WiX Toolset v3.11\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          $wixBin = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v*" -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName "bin" } |
+            Where-Object { Test-Path (Join-Path $_ "candle.exe") } |
+            Select-Object -First 1
+          if ($null -eq $wixBin) {
+            choco install wixtoolset --yes --no-progress
+            $wixBin = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v*" -Directory |
+              ForEach-Object { Join-Path $_.FullName "bin" } |
+              Where-Object { Test-Path (Join-Path $_ "candle.exe") } |
+              Select-Object -First 1
+          }
+          if ($null -eq $wixBin) {
+            throw "WiX candle.exe was not found after installation."
+          }
+          $wixBin | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Validate release configuration
         id: release
