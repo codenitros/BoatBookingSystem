@@ -197,6 +197,17 @@ This will create:
 
 ## 🔧 Advanced Build Options
 
+## Windows release installer
+
+The release workflow produces an MSI with a built-in Java runtime. The installer prompts
+for the installation directory and whether to create a desktop shortcut, and it also adds a Start
+Menu shortcut. Its icon is derived from `src/main/resources/icons8-boat-48.png` and stored as
+`src/main/resources/BoatBookingSystem.ico` for Windows packaging.
+
+Unsigned MSI files may show an Unknown Publisher or Microsoft Defender SmartScreen warning.
+This cannot be suppressed safely by the build workflow; it requires a trusted code-signing
+certificate and publisher reputation.
+
 ### Build only the fat JAR (without exe):
 
 ```bash
