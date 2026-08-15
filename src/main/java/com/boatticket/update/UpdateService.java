@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +25,7 @@ import java.util.regex.Pattern;
  * Checks the public release manifest and safely installs a newer Windows MSI after user approval.
  */
 public final class UpdateService {
+  private static final Logger LOGGER = Logger.getLogger(UpdateService.class.getName());
   private static final URI MANIFEST_URI =
       URI.create(
           "https://raw.githubusercontent.com/codenitros/BoatBookingSystemReleases/main/metadata/stable.json");
@@ -49,14 +52,24 @@ public final class UpdateService {
    */
   public void checkForUpdateAsync(Consumer<UpdateInfo> onUpdateAvailable) {
     if (!isWindows()) {
+      LOGGER.info("Skipping update check because the operating system is not Windows.");
       return;
     }
 
+    LOGGER.info(() -> "Checking for updates. Installed version: " + currentVersion());
     CompletableFuture.supplyAsync(this::fetchUpdate)
-        .thenAccept(update -> update.ifPresent(onUpdateAvailable))
+        .thenAccept(
+            update -> {
+              if (update.isPresent()) {
+                LOGGER.info(() -> "Update is available: " + update.get().version());
+                onUpdateAvailable.accept(update.get());
+              } else {
+                LOGGER.info("No update is available.");
+              }
+            })
         .exceptionally(
             failure -> {
-              System.err.println("[UpdateService] Update check failed: " + failure.getMessage());
+              LOGGER.log(Level.WARNING, "Update check failed unexpectedly.", failure);
               return null;
             });
   }
@@ -88,20 +101,44 @@ public final class UpdateService {
 
   private Optional<UpdateInfo> fetchUpdate() {
     try {
+      LOGGER.info(() -> "Requesting update metadata from " + MANIFEST_URI);
       HttpRequest request =
           HttpRequest.newBuilder(MANIFEST_URI).timeout(REQUEST_TIMEOUT).GET().build();
       HttpResponse<String> response =
           httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      LOGGER.info(
+          () ->
+              "Update metadata response: HTTP "
+                  + response.statusCode()
+                  + ", body: "
+                  + response.body());
       if (response.statusCode() != 200) {
+        LOGGER.warning(() -> "Update metadata request returned HTTP " + response.statusCode());
         return Optional.empty();
       }
 
       UpdateInfo update = parseManifest(response.body());
-      return isNewerVersion(update.version(), currentVersion())
-          ? Optional.of(update)
-          : Optional.empty();
-    } catch (IOException | InterruptedException exception) {
+      String installedVersion = currentVersion();
+      boolean updateAvailable = isNewerVersion(update.version(), installedVersion);
+      LOGGER.info(
+          () ->
+              "Parsed update metadata: latest version="
+                  + update.version()
+                  + ", installer="
+                  + update.installerUrl()
+                  + ", SHA-256="
+                  + update.sha256()
+                  + ". Installed version="
+                  + installedVersion
+                  + ". Update available="
+                  + updateAvailable);
+      return updateAvailable ? Optional.of(update) : Optional.empty();
+    } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
+      LOGGER.log(Level.WARNING, "Update metadata request was interrupted.", exception);
+      return Optional.empty();
+    } catch (Exception exception) {
+      LOGGER.log(Level.WARNING, "Unable to check for updates.", exception);
       return Optional.empty();
     }
   }
@@ -166,12 +203,22 @@ public final class UpdateService {
     try (InputStream input = UpdateService.class.getResourceAsStream("/version.properties")) {
       if (input != null) {
         properties.load(input);
+      } else {
+        LOGGER.warning("version.properties was not included in the application package.");
       }
     } catch (IOException exception) {
-      System.err.println(
-          "[UpdateService] Cannot read application version: " + exception.getMessage());
+      LOGGER.log(Level.WARNING, "Cannot read the installed application version.", exception);
     }
-    return properties.getProperty("application.version", "0.0.0");
+    String version = properties.getProperty("application.version", "0.0.0");
+    if (version.contains("${")) {
+      LOGGER.warning(
+          () ->
+              "version.properties was not Maven-filtered (value: "
+                  + version
+                  + "). Treating the installed version as 0.0.0.");
+      return "0.0.0";
+    }
+    return version;
   }
 
   static boolean isNewerVersion(String candidate, String installed) {

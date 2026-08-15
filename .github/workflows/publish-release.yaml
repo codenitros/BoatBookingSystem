@@ -111,6 +111,11 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($runtimeModules)) {
             throw "jdeps did not identify any modules for the application runtime."
           }
+          # GitHub's HTTPS endpoint commonly negotiates an elliptic-curve cipher suite. jdeps
+          # cannot always infer this service-provider module, so include it explicitly.
+          $runtimeModules = (@($runtimeModules -split ","; "jdk.crypto.ec") |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique) -join ","
           "modules=$runtimeModules" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Build Windows MSI installer
