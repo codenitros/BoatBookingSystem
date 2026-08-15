@@ -167,7 +167,7 @@ public class PdfReportManager {
     totalLine.setSpacingBefore(4f);
     document.add(totalLine);
 
-    Paragraph ticketCount = new Paragraph("Total Tickets in Range: " + rows.size(), CELL_FONT);
+    Paragraph ticketCount = new Paragraph("Total Tickets in Range: " + rows.size(), TOTAL_FONT);
     ticketCount.setSpacingBefore(4f);
     document.add(ticketCount);
   }
