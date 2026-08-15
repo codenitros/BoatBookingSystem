@@ -2,24 +2,54 @@ package com.boatticket.util;
 
 import com.boatticket.config.ConfigManager;
 import com.boatticket.model.Ticket;
-import javax.print.*;
+
+import javax.print.Doc;
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintException;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.SimpleDoc;
 import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.print.attribute.PrintRequestAttributeSet;
 import javax.print.attribute.standard.Copies;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ThermalPrinterManager {
 
-    private static final int LINE_WIDTH = 32; // 80mm thermal printer ~32 chars
-    private static final String SEPARATOR = "================================";
+    /*
+     * Standard 80 mm thermal receipt printers normally support
+     * approximately 48 characters per line using their normal
+     * fixed-width font.
+     *
+     * If the actual deployed printer is a 58 mm printer, this can
+     * later be changed to 32.
+     */
+    private static final int LINE_WIDTH = 48;
 
-    // Printer names that are virtual "print to file" destinations, not
-    // real thermal/receipt printers. If the resolved printer's name
-    // contains any of these (case-insensitive), we refuse to print to
-    // it rather than silently generating a PDF/XPS/etc.
+    private static final String SEPARATOR = "-".repeat(LINE_WIDTH);
+
+    /*
+     * Layout:
+     *
+     * 18 characters for the label
+     * 1 space
+     * remaining characters for the value
+     */
+    private static final int LABEL_WIDTH = 18;
+    private static final int VALUE_WIDTH =
+            LINE_WIDTH - LABEL_WIDTH;
+
+    /*
+     * Printer names that represent virtual/file printers rather
+     * than the actual thermal printer.
+     */
     private static final String[] VIRTUAL_PRINTER_KEYWORDS = {
             "microsoft print to pdf",
             "microsoft xps document writer",
@@ -29,48 +59,69 @@ public class ThermalPrinterManager {
     };
 
     /**
-     * Resolves which printer to send the ticket to.
-     * <p>
-     * - If {@code printer.name} is set in Config.properties, that exact
-     *   printer (matched case-insensitively) is used. This is the
-     *   recommended setup for a deployed ticket counter, so printing
-     *   never depends on whatever Windows happens to have set as its
-     *   default printer.
-     * - Otherwise, falls back to the system default printer — but
-     *   refuses to use it if it's a known virtual/PDF-style printer
-     *   (e.g. "Microsoft Print to PDF"), since that indicates the
-     *   Windows default printer is misconfigured for this app rather
-     *   than the app doing anything wrong.
+     * Resolves the printer configured in Config.properties.
+     *
+     * If printer.name is configured, that exact printer is used.
+     * Otherwise, the Windows default printer is used.
      */
     public static PrintService resolvePrinter() throws PrintException {
-        PrintService[] allPrinters = PrintServiceLookup.lookupPrintServices(null, null);
-        String configuredName = ConfigManager.getPrinterName();
 
+        PrintService[] allPrinters =
+                PrintServiceLookup.lookupPrintServices(null, null);
+
+        String configuredName =
+                ConfigManager.getPrinterName();
+
+        /*
+         * If a printer name has been configured, always use
+         * that printer.
+         */
         if (!configuredName.isEmpty()) {
+
             for (PrintService printer : allPrinters) {
-                if (printer.getName().equalsIgnoreCase(configuredName)) {
+
+                if (printer.getName()
+                        .equalsIgnoreCase(configuredName)) {
+
                     return printer;
                 }
             }
+
             throw new PrintException(
-                    "Configured printer \"" + configuredName + "\" (printer.name in " +
-                            "Config.properties) was not found. Available printers: " +
+                    "Configured printer \"" +
+                            configuredName +
+                            "\" was not found.\n\n" +
+                            "Available printers: " +
                             listPrinterNames(allPrinters)
             );
         }
 
-        PrintService defaultPrinter = PrintServiceLookup.lookupDefaultPrintService();
+        /*
+         * Otherwise use the Windows default printer.
+         */
+        PrintService defaultPrinter =
+                PrintServiceLookup.lookupDefaultPrintService();
+
         if (defaultPrinter == null) {
-            throw new PrintException("No default printer found on the system");
+            throw new PrintException(
+                    "No default printer found on the system."
+            );
         }
 
+        /*
+         * Do not accidentally send the ticket to a virtual
+         * PDF/XPS printer.
+         */
         if (isVirtualPrinter(defaultPrinter.getName())) {
+
             throw new PrintException(
-                    "The Windows default printer is \"" + defaultPrinter.getName() +
-                            "\", which creates a file instead of printing to a real device. " +
-                            "Either set that machine's default printer to the actual thermal " +
-                            "printer, or set printer.name=<exact printer name> in Config.properties. " +
-                            "Available printers: " + listPrinterNames(allPrinters)
+                    "The Windows default printer is \"" +
+                            defaultPrinter.getName() +
+                            "\", which is a virtual/file printer.\n\n" +
+                            "Set printer.name in Config.properties " +
+                            "to the actual thermal printer.\n\n" +
+                            "Available printers: " +
+                            listPrinterNames(allPrinters)
             );
         }
 
@@ -78,48 +129,75 @@ public class ThermalPrinterManager {
     }
 
     /**
-     * @deprecated use {@link #resolvePrinter()}, which also honours
-     * printer.name from Config.properties and rejects virtual/PDF printers.
-     * Kept only in case anything external still calls it directly.
+     * Kept for compatibility with any existing code.
      */
     @Deprecated
-    public static PrintService getDefaultPrinter() throws PrintException {
+    public static PrintService getDefaultPrinter()
+            throws PrintException {
+
         return resolvePrinter();
     }
 
-    private static boolean isVirtualPrinter(String printerName) {
+    /**
+     * Checks whether a printer is a known virtual printer.
+     */
+    private static boolean isVirtualPrinter(
+            String printerName) {
+
         if (printerName == null) {
             return false;
         }
-        String lower = printerName.toLowerCase(Locale.ROOT);
+
+        String lower =
+                printerName.toLowerCase(Locale.ROOT);
+
         for (String keyword : VIRTUAL_PRINTER_KEYWORDS) {
+
             if (lower.contains(keyword)) {
                 return true;
             }
         }
+
         return false;
     }
 
-    private static String listPrinterNames(PrintService[] printers) {
+    /**
+     * Creates a readable list of installed printers.
+     */
+    private static String listPrinterNames(
+            PrintService[] printers) {
+
         if (printers == null || printers.length == 0) {
             return "(none found)";
         }
+
         return Stream.of(printers)
                 .map(PrintService::getName)
                 .collect(Collectors.joining(", "));
     }
 
     /**
-     * Print ticket to the resolved printer (see {@link #resolvePrinter()}).
+     * Prints the ticket to the configured thermal printer.
      */
-    public static String printTicket(Ticket ticket) throws PrintException, IOException {
-        PrintService selectedPrinter = resolvePrinter();
+    public static String printTicket(Ticket ticket)
+            throws PrintException, IOException {
 
-        String content = formatTicketContent(ticket);
-        byte[] bytes = content.getBytes("UTF-8");
+        PrintService selectedPrinter =
+                resolvePrinter();
 
-        // Try different flavors to find one supported by the printer
+        String content =
+                formatTicketContent(ticket);
+
+        /*
+         * Send the ticket as fixed-width plain text.
+         *
+         * The layout itself is controlled by this class.
+         */
+        byte[] bytes =
+                content.getBytes(StandardCharsets.UTF_8);
+
         DocFlavor flavor = null;
+
         DocFlavor[] tryFlavors = {
                 DocFlavor.BYTE_ARRAY.TEXT_PLAIN_UTF_8,
                 DocFlavor.BYTE_ARRAY.AUTOSENSE,
@@ -127,165 +205,628 @@ public class ThermalPrinterManager {
         };
 
         for (DocFlavor tryFlavor : tryFlavors) {
-            if (selectedPrinter.isDocFlavorSupported(tryFlavor)) {
+
+            if (selectedPrinter.isDocFlavorSupported(
+                    tryFlavor)) {
+
                 flavor = tryFlavor;
                 break;
             }
         }
 
         if (flavor == null) {
-            // Default to BYTE_ARRAY.AUTOSENSE if no supported flavor found
-            flavor = DocFlavor.BYTE_ARRAY.AUTOSENSE;
+            flavor =
+                    DocFlavor.BYTE_ARRAY.AUTOSENSE;
         }
 
-        Doc doc = new SimpleDoc(bytes, flavor, null);
-        DocPrintJob job = selectedPrinter.createPrintJob();
+        Doc doc =
+                new SimpleDoc(
+                        bytes,
+                        flavor,
+                        null
+                );
 
-        PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
-        attrs.add(new Copies(1));
+        DocPrintJob job =
+                selectedPrinter.createPrintJob();
 
-        job.print(doc, attrs);
+        PrintRequestAttributeSet attributes =
+                new HashPrintRequestAttributeSet();
+
+        attributes.add(new Copies(1));
+
+        job.print(doc, attributes);
+
         return selectedPrinter.getName();
     }
 
-
     /**
-     * Print ticket to console for preview/debugging
+     * Prints the exact same formatted ticket to the IntelliJ
+     * console for development/testing.
      */
-    public static void printTicketToConsole(Ticket ticket) {
-        String content = formatTicketContent(ticket);
-        System.out.println("\n" + "=".repeat(40));
-        System.out.println("THERMAL PRINTER PREVIEW");
-        System.out.println("=".repeat(40));
+    public static void printTicketToConsole(
+            Ticket ticket) {
+
+        String content =
+                formatTicketContent(ticket);
+
+        System.out.println();
+        System.out.println(
+                "=".repeat(LINE_WIDTH)
+        );
+        System.out.println(
+                "THERMAL PRINTER PREVIEW"
+        );
+        System.out.println(
+                "=".repeat(LINE_WIDTH)
+        );
         System.out.println(content);
-        System.out.println("=".repeat(40));
+        System.out.println(
+                "=".repeat(LINE_WIDTH)
+        );
     }
 
     /**
-     * Format ticket content for 80mm thermal printer (colorless, optimized layout)
+     * Builds the complete thermal ticket.
+     *
+     * Every generated line is kept within LINE_WIDTH so that
+     * the printer does not unexpectedly wrap text.
      */
-    private static String formatTicketContent(Ticket ticket) {
-        StringBuilder sb = new StringBuilder();
+    private static String formatTicketContent(
+            Ticket ticket) {
 
-        // Header
-        sb.append(centerText("SHARAVATI BACKWATER BOATING")).append("\n");
-        sb.append(centerText("HONNAVAR, RECEIPT")).append("\n");
-        sb.append(SEPARATOR).append("\n");
-        sb.append("\n");
+        StringBuilder sb =
+                new StringBuilder();
 
-        // Ticket ID & Date
-        //sb.append("*** TICKET ID: ").append(ticket.getTicketId()).append(" ***\n");
-        sb.append("DATE & TIME: ").append(formatDateTime(ticket.getFormattedBookingTime())).append("\n");
-        sb.append("\n");
+        // ============================================================
+        // HEADER
+        // ============================================================
 
-        // Customer Details
-//        sb.append("CUSTOMER DETAILS").append("\n");
-//        sb.append(SEPARATOR).append("\n");
-//        sb.append("Name: ").append(truncate(ticket.getCustomerName(), LINE_WIDTH - 6)).append("\n");
-//        sb.append("Contact: ").append(ticket.getContactNumber()).append("\n");
-        sb.append("Persons: ").append(ticket.getNumberOfPeople()).append("\n");
-        sb.append("\n");
+        sb.append(
+                centerText(
+                        "SHARAVATI BACKWATER BOATING"
+                )
+        ).append('\n');
 
-        // Driver & Boat Details
+        sb.append(
+                centerText(
+                        "HONNAVAR, RECEIPT"
+                )
+        ).append('\n');
+
+        sb.append(SEPARATOR).append('\n');
+
+        // ============================================================
+        // BASIC TICKET INFORMATION
+        // ============================================================
+
+        appendKeyValue(
+                sb,
+                "Ticket ID",
+                ticket.getTicketId()
+        );
+
+        appendKeyValue(
+                sb,
+                "Date & Time",
+                formatDateTime(
+                        ticket.getFormattedBookingTime()
+                )
+        );
+
+        appendKeyValue(
+                sb,
+                "Persons",
+                String.valueOf(
+                        ticket.getNumberOfPeople()
+                )
+        );
+
+        sb.append('\n');
+
+        // ============================================================
+        // DRIVER AND BOAT DETAILS
+        // ============================================================
+
         if (ticket.getBoatOwner() != null) {
-            sb.append("DRIVER & BOAT DETAILS").append("\n");
-            sb.append(SEPARATOR).append("\n");
-            sb.append("Driver: ").append(truncate(ticket.getBoatOwner().getDriverName(), LINE_WIDTH - 8)).append("\n");
-            sb.append("Driver Number: ").append(ticket.getBoatOwner().getContact()).append("\n");
-            sb.append("Boat HR: ").append(ticket.getBoatOwner().getBoatHRNumber()).append("\n");
-            sb.append("Capacity: ").append(ticket.getBoatOwner().getCapacity()).append(" persons\n");
-            sb.append("\n");
+
+            appendSectionHeader(
+                    sb,
+                    "DRIVER & BOAT DETAILS"
+            );
+
+            appendKeyValue(
+                    sb,
+                    "Driver",
+                    ticket.getBoatOwner()
+                            .getDriverName()
+            );
+
+            appendKeyValue(
+                    sb,
+                    "Driver Number",
+                    ticket.getBoatOwner()
+                            .getContact()
+            );
+
+            appendKeyValue(
+                    sb,
+                    "Boat HR",
+                    ticket.getBoatOwner()
+                            .getBoatHRNumber()
+            );
+
+            appendKeyValue(
+                    sb,
+                    "Capacity",
+                    ticket.getBoatOwner()
+                            .getCapacity()
+                            + " persons"
+            );
+
+            sb.append('\n');
         }
 
-        // Ride Details
-        sb.append("RIDE DETAILS").append("\n");
-        sb.append(SEPARATOR).append("\n");
-        sb.append("Duration: ** ").append(ticket.getRideDurationInHour()).append(" HOUR(S) **\n");
+        // ============================================================
+        // RIDE DETAILS
+        // ============================================================
+
+        appendSectionHeader(
+                sb,
+                "RIDE DETAILS"
+        );
+
+        appendKeyValue(
+                sb,
+                "Duration",
+                ticket.getRideDurationInHour()
+                        + " HOUR(S)"
+        );
 
         if (ticket.isLifeJacketRequired()) {
-            sb.append("Life Jackets: ").append(ticket.getLifeJacketCount()).append("\n");
+
+            appendKeyValue(
+                    sb,
+                    "Life Jackets",
+                    String.valueOf(
+                            ticket.getLifeJacketCount()
+                    )
+            );
         }
 
         if (ticket.isParkingRequired()) {
-            sb.append("Vehicle Parking: ** ").append(ticket.getVehicleTypeDisplay());
-            if (ticket.getVehicleNumber() != null && !ticket.getVehicleNumber().isBlank()) {
-                sb.append(" | ").append(ticket.getVehicleNumber().toUpperCase());
+
+            String parkingDetails =
+                    ticket.getVehicleTypeDisplay();
+
+            if (ticket.getVehicleNumber() != null
+                    && !ticket.getVehicleNumber()
+                    .isBlank()) {
+
+                parkingDetails +=
+                        " | " +
+                                ticket.getVehicleNumber()
+                                        .toUpperCase(
+                                                Locale.ROOT
+                                        );
             }
-            sb.append(" **\n");
-        }
-        sb.append("\n");
 
-        // Fee Breakdown
-        sb.append("FEE BREAKDOWN").append("\n");
-        sb.append(SEPARATOR).append("\n");
-        sb.append("Boat Ride Fee: ** Rs ").append(ticket.getBoatRideFee()).append(" **\n");
+            appendKeyValue(
+                    sb,
+                    "Vehicle Parking",
+                    parkingDetails
+            );
+        }
+
+        sb.append('\n');
+
+        // ============================================================
+        // FEE BREAKDOWN
+        // ============================================================
+
+        appendSectionHeader(
+                sb,
+                "FEE BREAKDOWN"
+        );
+
+        appendAmountRow(
+                sb,
+                "Boat Ride Fee",
+                ticket.getBoatRideFee()
+        );
 
         if (ticket.isLifeJacketRequired()) {
-            sb.append("Life Jacket Fee: Rs ").append(ticket.getLifeJacketFee()).append("\n");
+
+            appendAmountRow(
+                    sb,
+                    "Life Jacket Fee",
+                    ticket.getLifeJacketFee()
+            );
         }
 
         if (ticket.isParkingRequired()) {
-            sb.append("Parking Fee: ** Rs ").append(ticket.getParkingFee()).append(" **\n");
+
+            appendAmountRow(
+                    sb,
+                    "Parking Fee",
+                    ticket.getParkingFee()
+            );
         }
 
-        sb.append("\n");
-//        sb.append("*** AMOUNT TO DRIVER ***").append("\n");
-//        sb.append("*** Rs ").append(ticket.getAmountToDriver()).append(" ***\n");
-//        sb.append("(Paid directly to driver)").append("\n");
-//        sb.append("\n");
+        sb.append('\n');
 
-        // Counter Payable
+        // ============================================================
+        // COUNTER PAYMENT
+        // ============================================================
+
         if (ticket.getCounterPayable() > 0) {
-            sb.append("===== COUNTER PAYMENT =====").append("\n");
-            sb.append("*** PAYABLE AT COUNTER ***\n");
-            sb.append("*** Rs ").append(ticket.getCounterPayable()).append(" ***\n");
-            sb.append("(PARKING FEE ONLY)").append("\n");
-            sb.append("\n");
+
+            sb.append(SEPARATOR)
+                    .append('\n');
+
+            sb.append(
+                    centerText("COUNTER PAYMENT")
+            ).append('\n');
+
+            sb.append(
+                    centerText(
+                            "PAYABLE AT COUNTER"
+                    )
+            ).append('\n');
+
+            sb.append(
+                    centerText(
+                            "Rs " +
+                                    ticket.getCounterPayable()
+                    )
+            ).append('\n');
+
+            sb.append(
+                    centerText(
+                            "(PARKING FEE ONLY)"
+                    )
+            ).append('\n');
+
+            sb.append(SEPARATOR)
+                    .append('\n');
+
+            sb.append('\n');
         }
 
-        // Footer
-        sb.append(SEPARATOR).append("\n");
-        sb.append(centerText("Thank You!")).append("\n");
-        sb.append(centerText("Safe & Happy Journey")).append("\n");
-        sb.append("\n\n");
+        // ============================================================
+        // FOOTER
+        // ============================================================
 
-        // Multiple newlines to advance paper and cut
-        for (int i = 0; i < 3; i++) {
-            sb.append("\n");
-        }
+        sb.append(SEPARATOR)
+                .append('\n');
+
+        sb.append(
+                centerText("Thank You!")
+        ).append('\n');
+
+        sb.append(
+                centerText(
+                        "Safe & Happy Journey"
+                )
+        ).append('\n');
+
+        /*
+         * Feed the paper after the final line so that the printer
+         * does not cut/stop immediately against the footer.
+         */
+        sb.append('\n');
+        sb.append('\n');
+        sb.append('\n');
 
         return sb.toString();
     }
 
     /**
-     * Center text within the line width
+     * Adds a section heading followed by a full-width separator.
      */
-    private static String centerText(String text) {
-        if (text.length() >= LINE_WIDTH) {
-            return text.substring(0, LINE_WIDTH);
+    private static void appendSectionHeader(
+            StringBuilder sb,
+            String title) {
+
+        sb.append(
+                sanitize(title)
+        ).append('\n');
+
+        sb.append(SEPARATOR)
+                .append('\n');
+    }
+
+    /**
+     * Creates a fixed two-column row.
+     *
+     * Example:
+     *
+     * Driver:           Ravi Kumar
+     * Driver Number:    9988011006
+     * Boat HR:          HR-001
+     */
+    private static void appendKeyValue(
+            StringBuilder sb,
+            String label,
+            String value) {
+
+        String safeLabel =
+                sanitize(label);
+
+        String safeValue =
+                sanitize(value);
+
+        /*
+         * Make sure the label never occupies more than
+         * LABEL_WIDTH characters.
+         */
+        if (safeLabel.length()
+                > LABEL_WIDTH - 1) {
+
+            safeLabel =
+                    safeLabel.substring(
+                            0,
+                            LABEL_WIDTH - 1
+                    );
         }
-        int padding = (LINE_WIDTH - text.length()) / 2;
-        return " ".repeat(Math.max(0, padding)) + text;
+
+        String labelPart =
+                String.format(
+                        "%-" +
+                                LABEL_WIDTH +
+                                "s",
+                        safeLabel + ":"
+                );
+
+        String[] lines =
+                wrapText(
+                        safeValue,
+                        VALUE_WIDTH
+                );
+
+        if (lines.length == 0) {
+
+            sb.append(labelPart)
+                    .append('\n');
+
+            return;
+        }
+
+        /*
+         * First line:
+         *
+         * Label:           Value
+         */
+        sb.append(labelPart)
+                .append(lines[0])
+                .append('\n');
+
+        /*
+         * Continuation lines start at the same position
+         * where the value column starts.
+         */
+        String continuation =
+                " ".repeat(LABEL_WIDTH);
+
+        for (int i = 1;
+             i < lines.length;
+             i++) {
+
+            sb.append(continuation)
+                    .append(lines[i])
+                    .append('\n');
+        }
     }
 
     /**
-     * Truncate text to fit within specified width
+     * Creates a properly aligned money row.
+     *
+     * Example:
+     *
+     * Boat Ride Fee:                         Rs 1500
+     * Life Jacket Fee:                         Rs 10
+     * Parking Fee:                             Rs 50
      */
-    private static String truncate(String text, int maxLength) {
-        if (text == null) return "";
-        if (text.length() <= maxLength) return text;
-        return text.substring(0, maxLength - 3) + "...";
+    private static void appendAmountRow(
+            StringBuilder sb,
+            String label,
+            int amount) {
+
+        String safeLabel =
+                sanitize(label);
+
+        /*
+         * Keep the amount on the right side of the
+         * receipt.
+         */
+        int amountWidth = 12;
+
+        int labelWidth =
+                LINE_WIDTH - amountWidth;
+
+        if (safeLabel.length()
+                > labelWidth - 1) {
+
+            safeLabel =
+                    safeLabel.substring(
+                            0,
+                            labelWidth - 1
+                    );
+        }
+
+        String left =
+                String.format(
+                        "%-" +
+                                labelWidth +
+                                "s",
+                        safeLabel
+                );
+
+        String right =
+                String.format(
+                        "%" +
+                                amountWidth +
+                                "s",
+                        "Rs " + amount
+                );
+
+        sb.append(left)
+                .append(right)
+                .append('\n');
     }
 
     /**
-     * Format date time string for thermal printer (condensed)
+     * Centers text inside the actual receipt width.
      */
-    private static String formatDateTime(String formattedTime) {
-        // Input format: "dd-MM-yyyy  HH:mm:ss"
-        // Output: "dd/MM HH:mm"
-        if (formattedTime == null || formattedTime.length() < 19) return formattedTime;
-        String date = formattedTime.substring(0, 10).replace("-", "/");
-        String time = formattedTime.substring(12, 17); // HH:mm
-        return date + " " + time;
+    private static String centerText(
+            String text) {
+
+        String safeText =
+                sanitize(text);
+
+        /*
+         * Prevent overflow.
+         */
+        if (safeText.length()
+                >= LINE_WIDTH) {
+
+            return safeText.substring(
+                    0,
+                    LINE_WIDTH
+            );
+        }
+
+        int padding =
+                (LINE_WIDTH -
+                        safeText.length()) / 2;
+
+        return " ".repeat(
+                Math.max(0, padding)
+        ) + safeText;
+    }
+
+    /**
+     * Wraps a long value without breaking words unless
+     * a single word itself is longer than the available width.
+     */
+    private static String[] wrapText(
+            String text,
+            int maxWidth) {
+
+        if (text == null
+                || text.isBlank()) {
+
+            return new String[]{""};
+        }
+
+        String safeText =
+                sanitize(text).trim();
+
+        List<String> lines =
+                new ArrayList<>();
+
+        while (safeText.length()
+                > maxWidth) {
+
+            int breakPosition =
+                    safeText.lastIndexOf(
+                            ' ',
+                            maxWidth
+                    );
+
+            /*
+             * If there is no suitable space,
+             * split at maxWidth.
+             */
+            if (breakPosition <= 0) {
+                breakPosition = maxWidth;
+            }
+
+            lines.add(
+                    safeText
+                            .substring(
+                                    0,
+                                    breakPosition
+                            )
+                            .trim()
+            );
+
+            safeText =
+                    safeText
+                            .substring(
+                                    breakPosition
+                            )
+                            .trim();
+        }
+
+        if (!safeText.isEmpty()) {
+            lines.add(safeText);
+        }
+
+        return lines.toArray(
+                new String[0]
+        );
+    }
+
+    /**
+     * Thermal printers generally have a limited character set.
+     *
+     * This also removes control characters that could accidentally
+     * move the printer cursor or break the receipt.
+     */
+    private static String sanitize(
+            String text) {
+
+        if (text == null) {
+            return "";
+        }
+
+        return text
+                .replace("\r", " ")
+                .replace("\n", " ")
+                .replace("\t", " ")
+                .replaceAll(
+                        "[^\\x20-\\x7E]",
+                        "?"
+                );
+    }
+
+    /**
+     * Converts:
+     *
+     * dd-MM-yyyy  HH:mm:ss
+     *
+     * into:
+     *
+     * dd/MM/yyyy HH:mm
+     */
+    private static String formatDateTime(
+            String formattedTime) {
+
+        if (formattedTime == null) {
+            return "";
+        }
+
+        try {
+
+            if (formattedTime.length()
+                    >= 19) {
+
+                String date =
+                        formattedTime
+                                .substring(0, 10)
+                                .replace("-", "/");
+
+                String time =
+                        formattedTime
+                                .substring(12, 17);
+
+                return date + " " + time;
+            }
+
+        } catch (Exception ignored) {
+            // Return original value below.
+        }
+
+        return formattedTime;
     }
 }

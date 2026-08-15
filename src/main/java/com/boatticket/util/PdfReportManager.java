@@ -141,11 +141,23 @@ public class PdfReportManager {
 
         document.add(table);
 
+        int totalPeople = 0;
+        for (TicketReport row : rows) {
+            totalPeople += row.getNumberOfPeople();
+        }
+
+        Paragraph totalPeopleLine = new Paragraph(
+                "Total Number of People: " + totalPeople,
+                TOTAL_FONT
+        );
+        totalPeopleLine.setSpacingBefore(10f);
+        document.add(totalPeopleLine);
+
         Paragraph totalLine = new Paragraph(
                 "Total Money Collected at Counter (Parking Fee): Rs " + totalParkingFee,
                 TOTAL_FONT
         );
-        totalLine.setSpacingBefore(14f);
+        totalLine.setSpacingBefore(4f);
         document.add(totalLine);
 
         Paragraph ticketCount = new Paragraph(

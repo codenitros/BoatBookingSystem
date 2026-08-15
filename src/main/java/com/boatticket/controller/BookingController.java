@@ -386,10 +386,28 @@ public class BookingController implements Initializable {
         }
 
         printTicketOnly(ticket);
+
+        // Ticket is saved and printing has been attempted either way --
+        // clear the form so the operator can start the next customer
+        // right away. The print status message above is left in place
+        // (resetFormFields does not touch statusLabel) so success/failure
+        // is still visible after the reset.
+        resetFormFields();
     }
 
     @FXML
     private void handleReset() {
+        resetFormFields();
+        statusLabel.setText("");
+    }
+
+    /**
+     * Clears every input field back to its default state, without
+     * touching statusLabel -- used both by the Reset button (which also
+     * clears the status message itself) and automatically after a
+     * ticket is printed (which wants to keep showing the print result).
+     */
+    private void resetFormFields() {
         customerNameField.clear();
         contactNumberField.clear();
 
@@ -411,7 +429,6 @@ public class BookingController implements Initializable {
         boatComboBox.setValue(null);
         boatComboBox.setItems(allBoats);
         boatDetailsLabel.setText("");
-        statusLabel.setText("");
 
         refreshFees();
     }
