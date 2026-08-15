@@ -44,7 +44,7 @@ public class ConfigManager {
   private static final int DEFAULT_LIFE_JACKET_FEE = 10;
   private static final int DEFAULT_PARKING_FEE_CAR = 20;
   private static final int DEFAULT_PARKING_FEE_BUS = 50;
-  private static final int DEFAULT_PARKING_FEE_TEMPOTRAVELLER = 35;
+  private static final int DEFAULT_PARKING_FEE_TEMPOTRAVELLER = 40;
 
   // Keep this false so a broken/missing config never accidentally
   // causes PDFs to be generated at a real deployed counter.

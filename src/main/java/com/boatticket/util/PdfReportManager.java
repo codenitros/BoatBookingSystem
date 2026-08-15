@@ -5,7 +5,6 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -153,24 +152,20 @@ public class PdfReportManager {
 
     document.add(table);
 
-        int totalPeople = 0;
-        for (TicketReport row : rows) {
-            totalPeople += row.getNumberOfPeople();
-        }
+    int totalPeople = 0;
+    for (TicketReport row : rows) {
+      totalPeople += row.getNumberOfPeople();
+    }
 
-        Paragraph totalPeopleLine = new Paragraph(
-                "Total Number of People: " + totalPeople,
-                TOTAL_FONT
-        );
-        totalPeopleLine.setSpacingBefore(10f);
-        document.add(totalPeopleLine);
+    Paragraph totalPeopleLine = new Paragraph("Total Number of People: " + totalPeople, TOTAL_FONT);
+    totalPeopleLine.setSpacingBefore(10f);
+    document.add(totalPeopleLine);
 
-        Paragraph totalLine = new Paragraph(
-                "Total Money Collected at Counter (Parking Fee): Rs " + totalParkingFee,
-                TOTAL_FONT
-        );
-        totalLine.setSpacingBefore(4f);
-        document.add(totalLine);
+    Paragraph totalLine =
+        new Paragraph(
+            "Total Money Collected at Counter (Parking Fee): Rs " + totalParkingFee, TOTAL_FONT);
+    totalLine.setSpacingBefore(4f);
+    document.add(totalLine);
 
     Paragraph ticketCount = new Paragraph("Total Tickets in Range: " + rows.size(), CELL_FONT);
     ticketCount.setSpacingBefore(4f);

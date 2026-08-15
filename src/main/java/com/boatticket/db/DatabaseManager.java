@@ -43,10 +43,14 @@ public class DatabaseManager {
   private static final DateTimeFormatter TICKET_TIME_FORMAT =
       DateTimeFormatter.ofPattern("dd-MM-yyyy  HH:mm:ss");
 
-    // Password used to lock the exported sheet against editing.
-    // The operator only needs to view/print/share the file, never edit cells,
-    // so this password is intentionally not exposed anywhere in the UI.
-    private static final String EXPORT_PROTECTION_PASSWORD = "SBB-Honnavar-ReadOnly-2026";
+  // Fallback boat capacity when a row's capacity cell is missing or
+  // can't be parsed (e.g. blank, or garbage data in the source sheet).
+  private static final int DEFAULT_BOAT_CAPACITY = 10;
+
+  // Password used to lock the exported sheet against editing.
+  // The operator only needs to view/print/share the file, never edit cells,
+  // so this password is intentionally not exposed anywhere in the UI.
+  private static final String EXPORT_PROTECTION_PASSWORD = "Doddamma";
 
   // Password required to OPEN the encrypted PDF ticket report at all.
   // Never shown anywhere in the UI — the operator can save/share the
@@ -155,8 +159,8 @@ public class DatabaseManager {
     }
   }
 
-    private void seedBoats(Connection connection) throws SQLException {
-        Path csvPath = Paths.get(DB_DIR, "boats.csv");
+  private void seedBoats(Connection connection) throws SQLException {
+    Path csvPath = Paths.get(DB_DIR, "boats.csv");
 
     try (BufferedReader reader =
             Files.exists(csvPath)
@@ -169,153 +173,140 @@ public class DatabaseManager {
                 "INSERT INTO boats(id,driver_name,boat_hr_number,boat_hon_number,"
                     + "jetty,capacity,contact) VALUES(?,?,?,?,?,?,?)")) {
 
-            String line;
-            String currentJetty = "";
-            int nextId = 1;
-            int batched = 0;
+      String line;
+      String currentJetty = "";
+      int nextId = 1;
+      int batched = 0;
 
-            while ((line = reader.readLine()) != null) {
-                // Keep trailing empty cells (e.g. "STAR BOATING,,,,,") so
-                // we can reliably tell a jetty title row apart from a
-                // real data row -- String.split(",") alone drops them.
-                String[] parts = line.split(",", -1);
+      while ((line = reader.readLine()) != null) {
+        // Keep trailing empty cells (e.g. "STAR BOATING,,,,,") so
+        // we can reliably tell a jetty title row apart from a
+        // real data row -- String.split(",") alone drops them.
+        String[] parts = line.split(",", -1);
 
-                if (isBlankRow(parts)) {
-                    continue; // spacer line between jetty sections
-                }
-
-                if (isColumnHeaderRow(parts)) {
-                    continue; // "Sl.no,Name,Hon no,HR no,Capacity,Mob no"
-                }
-
-                if (isJettyTitleRow(parts)) {
-                    currentJetty = parts[0].trim();
-                    continue;
-                }
-
-                // Otherwise this is a boat owner row:
-                // Sl.no, Name, Hon no, HR no, Capacity, Mob no
-                String driverName = cell(parts, 1);
-                String honNumber = cell(parts, 2);
-                String hrNumber = cell(parts, 3);
-                String capacityRaw = cell(parts, 4);
-                String contact = cell(parts, 5);
-
-                if (driverName.isEmpty()) {
-                    continue; // nothing usable on this row
-                }
-
-                statement.setInt(1, nextId++);
-                statement.setString(2, driverName);
-                statement.setString(3, hrNumber);
-                statement.setString(4, honNumber);
-                statement.setString(5, currentJetty);
-                statement.setInt(6, parseCapacity(capacityRaw));
-                statement.setString(7, contact);
-                statement.addBatch();
-                batched++;
-            }
-
-            if (batched > 0) {
-                statement.executeBatch();
-            }
-        } catch (IOException e) {
-            throw new SQLException("Failed to read boats.csv", e);
+        if (isBlankRow(parts)) {
+          continue; // spacer line between jetty sections
         }
+
+        if (isColumnHeaderRow(parts)) {
+          continue; // "Sl.no,Name,Hon no,HR no,Capacity,Mob no"
+        }
+
+        if (isJettyTitleRow(parts)) {
+          currentJetty = parts[0].trim();
+          continue;
+        }
+
+        // Otherwise this is a boat owner row:
+        // Sl.no, Name, Hon no, HR no, Capacity, Mob no
+        String driverName = cell(parts, 1);
+        String honNumber = cell(parts, 2);
+        String hrNumber = cell(parts, 3);
+        String capacityRaw = cell(parts, 4);
+        String contact = cell(parts, 5);
+
+        if (driverName.isEmpty()) {
+          continue; // nothing usable on this row
+        }
+
+        statement.setInt(1, nextId++);
+        statement.setString(2, driverName);
+        statement.setString(3, hrNumber);
+        statement.setString(4, honNumber);
+        statement.setString(5, currentJetty);
+        statement.setInt(6, parseCapacity(capacityRaw));
+        statement.setString(7, contact);
+        statement.addBatch();
+        batched++;
+      }
+
+      if (batched > 0) {
+        statement.executeBatch();
+      }
+    } catch (IOException e) {
+      throw new SQLException("Failed to read boats.csv", e);
+    }
+  }
+
+  private static boolean isBlankRow(String[] parts) {
+    for (String part : parts) {
+      if (!part.trim().isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean isColumnHeaderRow(String[] parts) {
+    String first = cell(parts, 0);
+    return first.equalsIgnoreCase("Sl.no") || first.equalsIgnoreCase("Sl");
+  }
+
+  /**
+   * A jetty/section title row looks like "STAR BOATING,,,,,": only the first cell has content, it's
+   * not a numeric serial number, and it's not the "Sl.no" column-header row (already handled
+   * separately).
+   */
+  private static boolean isJettyTitleRow(String[] parts) {
+    String first = cell(parts, 0);
+
+    if (first.isEmpty() || isNumeric(first)) {
+      return false;
     }
 
-    private static boolean isBlankRow(String[] parts) {
-        for (String part : parts) {
-            if (!part.trim().isEmpty()) {
-                return false;
-            }
-        }
-        return true;
+    for (int i = 1; i < parts.length; i++) {
+      if (!parts[i].trim().isEmpty()) {
+        return false;
+      }
     }
 
-    private static boolean isColumnHeaderRow(String[] parts) {
-        String first = cell(parts, 0);
-        return first.equalsIgnoreCase("Sl.no") || first.equalsIgnoreCase("Sl");
+    return true;
+  }
+
+  private static boolean isNumeric(String text) {
+    if (text.isEmpty()) {
+      return false;
+    }
+    for (char c : text.toCharArray()) {
+      if (!Character.isDigit(c)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static String cell(String[] parts, int index) {
+    return index < parts.length ? parts[index].trim() : "";
+  }
+
+  /**
+   * Capacity in the source sheet is written like "4+2" (base seats +2 extra, e.g. for driver/crew).
+   * Per the actual boat capacity we want to store and display, we ignore the "+2" part entirely and
+   * just use the number before the "+". Falls back to {@link #DEFAULT_BOAT_CAPACITY} if the cell is
+   * blank or unparseable.
+   */
+  private static int parseCapacity(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return DEFAULT_BOAT_CAPACITY;
     }
 
-    /**
-     * A jetty/section title row looks like "STAR BOATING,,,,,": only the
-     * first cell has content, it's not a numeric serial number, and it's
-     * not the "Sl.no" column-header row (already handled separately).
-     */
-    private static boolean isJettyTitleRow(String[] parts) {
-        String first = cell(parts, 0);
+    raw = raw.trim();
 
-        if (first.isEmpty() || isNumeric(first)) {
-            return false;
-        }
-
-        for (int i = 1; i < parts.length; i++) {
-            if (!parts[i].trim().isEmpty()) {
-                return false;
-            }
-        }
-
-        return true;
+    if (raw.contains("+")) {
+      raw = raw.substring(0, raw.indexOf('+')).trim();
     }
 
-    private static boolean isNumeric(String text) {
-        if (text.isEmpty()) {
-            return false;
-        }
-        for (char c : text.toCharArray()) {
-            if (!Character.isDigit(c)) {
-                return false;
-            }
-        }
-        return true;
+    try {
+      return Integer.parseInt(raw);
+    } catch (NumberFormatException e) {
+      return DEFAULT_BOAT_CAPACITY;
     }
+  }
 
-    private static String cell(String[] parts, int index) {
-        return index < parts.length ? parts[index].trim() : "";
+  private void reloadBoats(Connection connection) throws SQLException {
+    try (Statement statement = connection.createStatement()) {
+      statement.executeUpdate("DELETE FROM boats");
     }
-
-    /**
-     * Capacity in the source sheet is written like "4+2" (4 passenger
-     * seats + 2 for driver/crew, or similar) rather than a plain
-     * number. Sums the parts if a "+" is present; falls back to
-     * {@link #DEFAULT_BOAT_CAPACITY} if the cell is blank or
-     * unparseable.
-     */
-    private static int parseCapacity(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return DEFAULT_BOAT_CAPACITY;
-        }
-
-        raw = raw.trim();
-
-        if (raw.contains("+")) {
-            int total = 0;
-            boolean any = false;
-
-            for (String piece : raw.split("\\+")) {
-                try {
-                    total += Integer.parseInt(piece.trim());
-                    any = true;
-                } catch (NumberFormatException ignored) {
-                    // skip non-numeric pieces, e.g. stray text
-                }
-            }
-
-            return any ? total : DEFAULT_BOAT_CAPACITY;
-        }
-
-        try {
-            return Integer.parseInt(raw);
-        } catch (NumberFormatException e) {
-            return DEFAULT_BOAT_CAPACITY;
-        }
-    }
-
-    private void reloadBoats(Connection connection) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate("DELETE FROM boats");
-        }
 
     seedBoats(connection);
   }
