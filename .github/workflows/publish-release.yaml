@@ -125,7 +125,7 @@ jobs:
             --description "Sharavati Backwater Boating Honnavar Ticket Booking" `
             --input target `
             --main-jar HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar `
-            --main-class com.boatticket.MainApp `
+            --main-class com.boatticket.ApplicationLauncher `
             --module-path "$env:JAVA_HOME\jmods;${{ steps.javafx.outputs.path }}" `
             --add-modules "${{ steps.runtime.outputs.modules }}" `
             --java-options "--add-modules=${{ steps.runtime.outputs.modules }}" `
