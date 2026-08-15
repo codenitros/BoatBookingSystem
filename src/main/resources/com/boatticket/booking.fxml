@@ -28,7 +28,7 @@
             <HBox spacing="8">
                 <Button fx:id="viewTicketsBtn" text="📋 View Today's Tickets"
                         styleClass="btn-toolbar" onAction="#handleViewTickets"/>
-                <Button fx:id="backupBtn" text="📊 Export to Excel"
+                <Button fx:id="backupBtn" text="📄 Export to PDF"
                         styleClass="btn-toolbar" onAction="#handleBackup"/>
                 <Button fx:id="logoutBtn" text="🔓 Logout"
                         styleClass="btn-toolbar" onAction="#handleLogout"/>
@@ -140,10 +140,10 @@
                         <RadioButton fx:id="rbCar" text="Car (Rs 20)"
                                      styleClass="vehicle-radio"
                                      toggleGroup="$vehicleGroup"/>
-                        <RadioButton fx:id="rbTempo" text="Tempo Traveller (Rs 35)"
+                        <RadioButton fx:id="rbTempo" text="Tempo Traveller (Rs 40)"
                                      styleClass="vehicle-radio"
                                      toggleGroup="$vehicleGroup"/>
-                        <RadioButton fx:id="rbBus" text="Bus (Rs 40)"
+                        <RadioButton fx:id="rbBus" text="Bus (Rs 50)"
                                      styleClass="vehicle-radio"
                                      toggleGroup="$vehicleGroup"/>
                     </HBox>

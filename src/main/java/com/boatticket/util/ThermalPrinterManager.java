@@ -160,76 +160,81 @@ public class ThermalPrinterManager {
 
     // Ticket ID & Date
     // sb.append("*** TICKET ID: ").append(ticket.getTicketId()).append(" ***\n");
-    sb.append("DATE & TIME: ")
-        .append(formatDateTime(ticket.getFormattedBookingTime()))
+    sb.append(formatLine("DATE & TIME:", formatDateTime(ticket.getFormattedBookingTime())))
         .append("\n");
     sb.append("\n");
 
     // Customer Details
     //        sb.append("CUSTOMER DETAILS").append("\n");
     //        sb.append(SEPARATOR).append("\n");
-    //        sb.append("Name: ").append(truncate(ticket.getCustomerName(), LINE_WIDTH -
-    // 6)).append("\n");
-    //        sb.append("Contact: ").append(ticket.getContactNumber()).append("\n");
-    sb.append("Persons: ").append(ticket.getNumberOfPeople()).append("\n");
+    //        sb.append(formatLine("Name:", truncate(ticket.getCustomerName(), LINE_WIDTH -
+    // 6))).append("\n");
+    //        sb.append(formatLine("Contact:", ticket.getContactNumber())).append("\n");
+    sb.append(formatLine("Persons:", String.valueOf(ticket.getNumberOfPeople()))).append("\n");
     sb.append("\n");
 
     // Driver & Boat Details
     if (ticket.getBoatOwner() != null) {
       sb.append("DRIVER & BOAT DETAILS").append("\n");
       sb.append(SEPARATOR).append("\n");
-      sb.append("Driver: ")
-          .append(truncate(ticket.getBoatOwner().getDriverName(), LINE_WIDTH - 8))
+      sb.append(
+              formatLine(
+                  "Driver:", truncate(ticket.getBoatOwner().getDriverName(), LINE_WIDTH - 8)))
           .append("\n");
-      sb.append("Driver Number: ").append(ticket.getBoatOwner().getContact()).append("\n");
-      sb.append("Boat HR: ").append(ticket.getBoatOwner().getBoatHRNumber()).append("\n");
-      sb.append("Capacity: ").append(ticket.getBoatOwner().getCapacity()).append(" persons\n");
+      sb.append(formatLine("Driver Number:", ticket.getBoatOwner().getContact())).append("\n");
+      sb.append(formatLine("Boat HR:", ticket.getBoatOwner().getBoatHRNumber())).append("\n");
+      sb.append(formatLine("Capacity:", ticket.getBoatOwner().getCapacity() + " persons"))
+          .append("\n");
       sb.append("\n");
     }
 
     // Ride Details
     sb.append("RIDE DETAILS").append("\n");
     sb.append(SEPARATOR).append("\n");
-    sb.append("Duration: ** ").append(ticket.getRideDurationInHour()).append(" HOUR(S) **\n");
+    sb.append(formatLine("Duration:", "** " + ticket.getRideDurationInHour() + " HOUR(S) **"))
+        .append("\n");
 
     if (ticket.isLifeJacketRequired()) {
-      sb.append("Life Jackets: ").append(ticket.getLifeJacketCount()).append("\n");
+      sb.append(formatLine("Life Jackets:", String.valueOf(ticket.getLifeJacketCount())))
+          .append("\n");
     }
 
     if (ticket.isParkingRequired()) {
-      sb.append("Vehicle Parking: ** ").append(ticket.getVehicleTypeDisplay());
+      String vehicleValue = "** " + ticket.getVehicleTypeDisplay();
       if (ticket.getVehicleNumber() != null && !ticket.getVehicleNumber().isBlank()) {
-        sb.append(" | ").append(ticket.getVehicleNumber().toUpperCase());
+        vehicleValue += " | " + ticket.getVehicleNumber().toUpperCase();
       }
-      sb.append(" **\n");
+      vehicleValue += " **";
+      sb.append(formatLine("Vehicle Parking:", vehicleValue)).append("\n");
     }
     sb.append("\n");
 
     // Fee Breakdown
     sb.append("FEE BREAKDOWN").append("\n");
     sb.append(SEPARATOR).append("\n");
-    sb.append("Boat Ride Fee: ** Rs ").append(ticket.getBoatRideFee()).append(" **\n");
+    sb.append(formatLine("Boat Ride Fee:", "** Rs " + ticket.getBoatRideFee() + " **"))
+        .append("\n");
 
     if (ticket.isLifeJacketRequired()) {
-      sb.append("Life Jacket Fee: Rs ").append(ticket.getLifeJacketFee()).append("\n");
+      sb.append(formatLine("Life Jacket Fee:", "Rs " + ticket.getLifeJacketFee())).append("\n");
     }
 
     if (ticket.isParkingRequired()) {
-      sb.append("Parking Fee: ** Rs ").append(ticket.getParkingFee()).append(" **\n");
+      sb.append(formatLine("Parking Fee:", "** Rs " + ticket.getParkingFee() + " **")).append("\n");
     }
 
     sb.append("\n");
-    //        sb.append("*** AMOUNT TO DRIVER ***").append("\n");
-    //        sb.append("*** Rs ").append(ticket.getAmountToDriver()).append(" ***\n");
-    //        sb.append("(Paid directly to driver)").append("\n");
+    //        sb.append(centerText("*** AMOUNT TO DRIVER ***")).append("\n");
+    //        sb.append(centerText("*** Rs " + ticket.getAmountToDriver() + " ***")).append("\n");
+    //        sb.append(centerText("(Paid directly to driver)")).append("\n");
     //        sb.append("\n");
 
     // Counter Payable
     if (ticket.getCounterPayable() > 0) {
-      sb.append("===== COUNTER PAYMENT =====").append("\n");
-      sb.append("*** PAYABLE AT COUNTER ***\n");
-      sb.append("*** Rs ").append(ticket.getCounterPayable()).append(" ***\n");
-      sb.append("(PARKING FEE ONLY)").append("\n");
+      sb.append(centerText("===== COUNTER PAYMENT =====")).append("\n");
+      sb.append(centerText("*** PAYABLE AT COUNTER ***")).append("\n");
+      sb.append(centerText("*** Rs " + ticket.getCounterPayable() + " ***")).append("\n");
+      sb.append(centerText("(PARKING FEE ONLY)")).append("\n");
       sb.append("\n");
     }
 
@@ -245,6 +250,41 @@ public class ThermalPrinterManager {
     }
 
     return sb.toString();
+  }
+
+  /**
+   * Formats a "label + value" line so the value's right edge lands on the same column every time,
+   * no matter how long the label is -- e.g.:
+   *
+   * <pre>
+   *   Driver:                Ravi Kumar
+   *   Driver Number:         9900011001
+   *   Boat HR:                    HR-001
+   * </pre>
+   *
+   * If label + value can't fit on one line within {@link #LINE_WIDTH}, the value drops to its own
+   * line, still right-aligned to the same column, instead of overflowing/wrapping unpredictably.
+   */
+  private static String formatLine(String label, String value) {
+    if (value == null) {
+      value = "";
+    }
+
+    int gap = LINE_WIDTH - label.length() - value.length();
+
+    if (gap < 1) {
+      return label + "\n" + rightAlign(value, LINE_WIDTH);
+    }
+
+    return label + " ".repeat(gap) + value;
+  }
+
+  /** Right-aligns text within the line width (pads with leading spaces). */
+  private static String rightAlign(String text, int width) {
+    if (text.length() >= width) {
+      return text;
+    }
+    return " ".repeat(width - text.length()) + text;
   }
 
   /** Center text within the line width */

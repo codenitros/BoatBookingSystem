@@ -43,10 +43,14 @@ public class DatabaseManager {
   private static final DateTimeFormatter TICKET_TIME_FORMAT =
       DateTimeFormatter.ofPattern("dd-MM-yyyy  HH:mm:ss");
 
+  // Fallback boat capacity when a row's capacity cell is missing or
+  // can't be parsed (e.g. blank, or garbage data in the source sheet).
+  private static final int DEFAULT_BOAT_CAPACITY = 10;
+
   // Password used to lock the exported sheet against editing.
   // The operator only needs to view/print/share the file, never edit cells,
   // so this password is intentionally not exposed anywhere in the UI.
-  private static final String EXPORT_PROTECTION_PASSWORD = "SBB-Honnavar-ReadOnly-2026";
+  private static final String EXPORT_PROTECTION_PASSWORD = "Doddamma";
 
   // Password required to OPEN the encrypted PDF ticket report at all.
   // Never shown anywhere in the UI — the operator can save/share the
@@ -170,31 +174,132 @@ public class DatabaseManager {
                     + "jetty,capacity,contact) VALUES(?,?,?,?,?,?,?)")) {
 
       String line;
-      boolean firstLine = true;
+      String currentJetty = "";
+      int nextId = 1;
+      int batched = 0;
 
       while ((line = reader.readLine()) != null) {
-        if (firstLine) {
-          firstLine = false;
+        // Keep trailing empty cells (e.g. "STAR BOATING,,,,,") so
+        // we can reliably tell a jetty title row apart from a
+        // real data row -- String.split(",") alone drops them.
+        String[] parts = line.split(",", -1);
+
+        if (isBlankRow(parts)) {
+          continue; // spacer line between jetty sections
+        }
+
+        if (isColumnHeaderRow(parts)) {
+          continue; // "Sl.no,Name,Hon no,HR no,Capacity,Mob no"
+        }
+
+        if (isJettyTitleRow(parts)) {
+          currentJetty = parts[0].trim();
           continue;
         }
 
-        String[] parts = line.split(",");
+        // Otherwise this is a boat owner row:
+        // Sl.no, Name, Hon no, HR no, Capacity, Mob no
+        String driverName = cell(parts, 1);
+        String honNumber = cell(parts, 2);
+        String hrNumber = cell(parts, 3);
+        String capacityRaw = cell(parts, 4);
+        String contact = cell(parts, 5);
 
-        if (parts.length == 7) {
-          statement.setInt(1, Integer.parseInt(parts[0].trim()));
-          statement.setString(2, parts[1].trim());
-          statement.setString(3, parts[2].trim());
-          statement.setString(4, parts[3].trim());
-          statement.setString(5, parts[4].trim());
-          statement.setInt(6, Integer.parseInt(parts[5].trim()));
-          statement.setString(7, parts[6].trim());
-          statement.addBatch();
+        if (driverName.isEmpty()) {
+          continue; // nothing usable on this row
         }
+
+        statement.setInt(1, nextId++);
+        statement.setString(2, driverName);
+        statement.setString(3, hrNumber);
+        statement.setString(4, honNumber);
+        statement.setString(5, currentJetty);
+        statement.setInt(6, parseCapacity(capacityRaw));
+        statement.setString(7, contact);
+        statement.addBatch();
+        batched++;
       }
 
-      statement.executeBatch();
+      if (batched > 0) {
+        statement.executeBatch();
+      }
     } catch (IOException e) {
       throw new SQLException("Failed to read boats.csv", e);
+    }
+  }
+
+  private static boolean isBlankRow(String[] parts) {
+    for (String part : parts) {
+      if (!part.trim().isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean isColumnHeaderRow(String[] parts) {
+    String first = cell(parts, 0);
+    return first.equalsIgnoreCase("Sl.no") || first.equalsIgnoreCase("Sl");
+  }
+
+  /**
+   * A jetty/section title row looks like "STAR BOATING,,,,,": only the first cell has content, it's
+   * not a numeric serial number, and it's not the "Sl.no" column-header row (already handled
+   * separately).
+   */
+  private static boolean isJettyTitleRow(String[] parts) {
+    String first = cell(parts, 0);
+
+    if (first.isEmpty() || isNumeric(first)) {
+      return false;
+    }
+
+    for (int i = 1; i < parts.length; i++) {
+      if (!parts[i].trim().isEmpty()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static boolean isNumeric(String text) {
+    if (text.isEmpty()) {
+      return false;
+    }
+    for (char c : text.toCharArray()) {
+      if (!Character.isDigit(c)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static String cell(String[] parts, int index) {
+    return index < parts.length ? parts[index].trim() : "";
+  }
+
+  /**
+   * Capacity in the source sheet is written like "4+2" (base seats +2 extra, e.g. for driver/crew).
+   * Per the actual boat capacity we want to store and display, we ignore the "+2" part entirely and
+   * just use the number before the "+". Falls back to {@link #DEFAULT_BOAT_CAPACITY} if the cell is
+   * blank or unparseable.
+   */
+  private static int parseCapacity(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return DEFAULT_BOAT_CAPACITY;
+    }
+
+    raw = raw.trim();
+
+    if (raw.contains("+")) {
+      raw = raw.substring(0, raw.indexOf('+')).trim();
+    }
+
+    try {
+      return Integer.parseInt(raw);
+    } catch (NumberFormatException e) {
+      return DEFAULT_BOAT_CAPACITY;
     }
   }
 

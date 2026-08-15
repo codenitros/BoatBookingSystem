@@ -105,15 +105,33 @@ public class BookingController implements Initializable {
         .textProperty()
         .addListener(
             (obs, oldValue, term) -> {
-              String lower = term.toLowerCase();
+              String query = term.trim();
+              String lower = query.toLowerCase();
               ObservableList<BoatOwner> filtered = FXCollections.observableArrayList();
 
+              // A purely numeric search (e.g. "40") is treated as an exact
+              // boat-ID lookup, NOT a substring match. Substring-matching a
+              // number against HR/HON registration numbers was the bug --
+              // searching "40" matched boat #7 (HR number "640" contains
+              // "40"), boat #73 (HON number "HON0040" contains "40"), etc.,
+              // none of which are boat #40 at all.
+              boolean isNumericQuery =
+                  !query.isEmpty() && query.chars().allMatch(Character::isDigit);
+
               for (BoatOwner boat : allBoats) {
-                if (boat.getDriverName().toLowerCase().contains(lower)
-                    || boat.getBoatHRNumber().toLowerCase().contains(lower)
-                    || boat.getBoatHONumber().toLowerCase().contains(lower)
-                    || boat.getJetty().toLowerCase().contains(lower)
-                    || String.valueOf(boat.getCapacity()).contains(lower)) {
+                boolean matches;
+
+                if (isNumericQuery) {
+                  matches = String.valueOf(boat.getId()).equals(query);
+                } else {
+                  matches =
+                      boat.getDriverName().toLowerCase().contains(lower)
+                          || boat.getBoatHRNumber().toLowerCase().contains(lower)
+                          || boat.getBoatHONumber().toLowerCase().contains(lower)
+                          || boat.getJetty().toLowerCase().contains(lower);
+                }
+
+                if (matches) {
                   filtered.add(boat);
                 }
               }
@@ -368,10 +386,27 @@ public class BookingController implements Initializable {
     }
 
     printTicketOnly(ticket);
+
+    // Ticket is saved and printing has been attempted either way --
+    // clear the form so the operator can start the next customer
+    // right away. The print status message above is left in place
+    // (resetFormFields does not touch statusLabel) so success/failure
+    // is still visible after the reset.
+    resetFormFields();
   }
 
   @FXML
   private void handleReset() {
+    resetFormFields();
+    statusLabel.setText("");
+  }
+
+  /**
+   * Clears every input field back to its default state, without touching statusLabel -- used both
+   * by the Reset button (which also clears the status message itself) and automatically after a
+   * ticket is printed (which wants to keep showing the print result).
+   */
+  private void resetFormFields() {
     customerNameField.clear();
     contactNumberField.clear();
 
@@ -388,7 +423,6 @@ public class BookingController implements Initializable {
     boatComboBox.setValue(null);
     boatComboBox.setItems(allBoats);
     boatDetailsLabel.setText("");
-    statusLabel.setText("");
 
     refreshFees();
   }

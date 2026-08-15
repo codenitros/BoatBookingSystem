@@ -81,7 +81,7 @@ BoatTicketSystem/
 │       │       │   ├── Ticket.java             ← Ticket data model + fee constants
 │       │       │   └── BoatOwner.java          ← Boat owner data model
 │       │       └── util/
-│       │           └── ThermalPrinterManager.java ← Thermal printing utilities
+│       │           └── Thermalprintermanager.java ← Thermal printing utilities
 │       └── resources/com/boatticket/
 │           ├── login.fxml           ← Login UI layout
 │           ├── booking.fxml         ← Booking UI layout
@@ -93,13 +93,13 @@ BoatTicketSystem/
 
 ## 💰 Fee Structure (all preset — edit in `Ticket.java`)
 
-```java
+```
 BOAT_RIDE_FEE_PER_HOUR    = 1500  // per hour
 BOAT_RIDE_FEE_2HOURS      = 2500  // special rate for 2 hours
 LIFE_JACKET_FEE           = 10    // per jacket (mandatory)
 PARKING_FEE_CAR           = 20
 PARKING_FEE_BUS           = 50
-PARKING_FEE_TEMPOTRAVELLER = 35
+PARKING_FEE_TEMPOTRAVELLER = 40
 ```
 
 To change any fee, open `src/main/java/com/boatticket/model/Ticket.java` and edit the constants at the top.
