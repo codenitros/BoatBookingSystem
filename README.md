@@ -197,6 +197,24 @@ This will create:
 
 ## 🔧 Advanced Build Options
 
+## Windows release installer
+
+The release workflow produces a signed MSI with a built-in Java runtime. The installer prompts
+for the installation directory and whether to create a desktop shortcut, and it also adds a Start
+Menu shortcut. Its icon is derived from `src/main/resources/icons8-boat-48.png` and stored as
+`src/main/resources/BoatBookingSystem.ico` for Windows packaging.
+
+Before publishing a release, configure these GitHub Actions secrets with an organization code
+signing certificate:
+
+- `WINDOWS_CODESIGN_PFX_BASE64`: Base64-encoded PFX certificate file.
+- `WINDOWS_CODESIGN_PFX_PASSWORD`: Password for that PFX file.
+
+The workflow signs and verifies the MSI before publishing it. A valid public code-signing
+certificate is required for Windows to identify the publisher; an EV certificate or established
+certificate reputation may still be required for Microsoft Defender SmartScreen to stop showing
+its reputation warning.
+
 ### Build only the fat JAR (without exe):
 
 ```bash

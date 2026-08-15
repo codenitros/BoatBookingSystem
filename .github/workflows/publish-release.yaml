@@ -97,7 +97,23 @@ jobs:
           mvn -B -V -q com.diffplug.spotless:spotless-maven-plugin:2.31.0:check
           mvn -B -V -q clean verify
 
-      - name: Build per-user MSI installer
+      - name: Determine the runtime modules required by the application
+        id: runtime
+        shell: pwsh
+        run: |
+          $jar = "target/HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar"
+          $runtimeModules = (& jdeps `
+            --ignore-missing-deps `
+            --multi-release 17 `
+            --print-module-deps `
+            --module-path "${{ steps.javafx.outputs.path }}" `
+            $jar).Trim()
+          if ([string]::IsNullOrWhiteSpace($runtimeModules)) {
+            throw "jdeps did not identify any modules for the application runtime."
+          }
+          "modules=$runtimeModules" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build signed Windows MSI installer
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
@@ -105,17 +121,52 @@ jobs:
             --type msi `
             --name BoatBookingSystem `
             --app-version "${{ steps.release.outputs.version }}" `
+            --vendor "Codenitros" `
+            --description "Sharavati Backwater Boating Honnavar Ticket Booking" `
             --input target `
             --main-jar HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar `
             --main-class com.boatticket.MainApp `
             --module-path "$env:JAVA_HOME\jmods;${{ steps.javafx.outputs.path }}" `
-            --add-modules "javafx.controls,javafx.fxml" `
-            --java-options "--add-modules=javafx.controls,javafx.fxml" `
+            --add-modules "${{ steps.runtime.outputs.modules }}" `
+            --java-options "--add-modules=${{ steps.runtime.outputs.modules }}" `
+            --icon src/main/resources/BoatBookingSystem.ico `
             --dest dist `
-            --win-per-user-install `
+            --win-dir-chooser `
             --win-menu `
+            --win-menu-group "Boat Booking System" `
             --win-shortcut `
+            --win-shortcut-prompt `
             --win-upgrade-uuid $env:JPACKAGE_UPGRADE_UUID
+
+      - name: Sign and verify MSI installer
+        shell: pwsh
+        env:
+          WINDOWS_CODESIGN_PFX_BASE64: ${{ secrets.WINDOWS_CODESIGN_PFX_BASE64 }}
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PFX_BASE64) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PFX_PASSWORD)) {
+            throw "Set WINDOWS_CODESIGN_PFX_BASE64 and WINDOWS_CODESIGN_PFX_PASSWORD before publishing a release."
+          }
+          $installer = Get-ChildItem dist -Filter *.msi | Select-Object -First 1
+          if ($null -eq $installer) {
+            throw "MSI installer was not produced."
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "windows-codesign.pfx"
+          [System.IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CODESIGN_PFX_BASE64))
+          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "x64" } |
+            Select-Object -First 1
+          if ($null -eq $signTool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+          & $signTool.FullName sign /fd SHA256 /f $certificatePath /p $env:WINDOWS_CODESIGN_PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $installer.FullName
+          if ($LASTEXITCODE -ne 0) {
+            throw "Signing the MSI failed."
+          }
+          & $signTool.FullName verify /pa /v $installer.FullName
+          if ($LASTEXITCODE -ne 0) {
+            throw "The MSI signature could not be verified."
+          }
 
       - name: Check out public release repository
         uses: actions/checkout@v4
