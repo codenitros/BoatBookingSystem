@@ -40,7 +40,11 @@ public final class UpdateService {
   private final HttpClient httpClient;
 
   public UpdateService() {
-    this(HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build());
+    this(
+        HttpClient.newBuilder()
+            .connectTimeout(REQUEST_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build());
   }
 
   UpdateService(HttpClient httpClient) {
@@ -150,10 +154,17 @@ public final class UpdateService {
       throw new IOException("Updater only accepts HTTPS installer URLs");
     }
 
+    LOGGER.info(() -> "Downloading update installer from " + installerUri);
     HttpRequest request =
         HttpRequest.newBuilder(installerUri).timeout(Duration.ofMinutes(5)).GET().build();
     HttpResponse<InputStream> response =
         httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+    LOGGER.info(
+        () ->
+            "Installer download response: HTTP "
+                + response.statusCode()
+                + ", final URL: "
+                + response.uri());
     if (response.statusCode() != 200) {
       throw new IOException("Installer download failed with HTTP " + response.statusCode());
     }
@@ -167,6 +178,7 @@ public final class UpdateService {
       Files.deleteIfExists(installer);
       throw new IOException("Downloaded installer checksum does not match the release manifest");
     }
+    LOGGER.info(() -> "Installer checksum verified: " + installer);
     return installer;
   }
 
