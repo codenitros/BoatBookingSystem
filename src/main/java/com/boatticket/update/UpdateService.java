@@ -30,6 +30,7 @@ public final class UpdateService {
       URI.create(
           "https://raw.githubusercontent.com/codenitros/BoatBookingSystemReleases/main/metadata/stable.json");
   private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
   private static final Pattern VERSION_PATTERN =
       Pattern.compile("\\\"version\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
   private static final Pattern INSTALLER_URL_PATTERN =
@@ -42,7 +43,9 @@ public final class UpdateService {
   public UpdateService() {
     this(
         HttpClient.newBuilder()
-            .connectTimeout(REQUEST_TIMEOUT)
+            // Release assets are served through GitHub's redirect/CDN path, which can take
+            // longer to establish than the small metadata request.
+            .connectTimeout(CONNECT_TIMEOUT)
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build());
   }
