@@ -24,9 +24,9 @@ import java.util.Properties;
  * </pre>
  *
  * That external copy is what actually gets read from then on. To change a price, the dev.mode
- * toggle, or the printer name after deployment, edit that external file and restart the app (or
- * call {@link #reload()} if you want a running app to pick up an edit made while it's open) — no
- * rebuild required.
+ * toggle, printer name, or update timeout after deployment, edit that external file and restart
+ * the app (or call {@link #reload()} if you want a running app to pick up an edit made while it's
+ * open) — no rebuild required.
  */
 public class ConfigManager {
 
@@ -45,6 +45,7 @@ public class ConfigManager {
   private static final int DEFAULT_PARKING_FEE_CAR = 20;
   private static final int DEFAULT_PARKING_FEE_BUS = 50;
   private static final int DEFAULT_PARKING_FEE_TEMPOTRAVELLER = 40;
+  private static final int DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS = 30;
 
   // Keep this false so a broken/missing config never accidentally
   // causes PDFs to be generated at a real deployed counter.
@@ -80,6 +81,16 @@ public class ConfigManager {
 
   public static int getParkingFeeTempoTraveller() {
     return getInt("parking.fee.tempotraveller", DEFAULT_PARKING_FEE_TEMPOTRAVELLER);
+  }
+
+  /**
+   * Maximum time to wait for a connection to GitHub's release/CDN endpoint when downloading an
+   * application update.
+   */
+  public static int getUpdateConnectionTimeoutSeconds() {
+    int timeout =
+        getInt("update.connection.timeout.seconds", DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS);
+    return timeout > 0 ? timeout : DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS;
   }
 
   // ------------------------------------------------------------------
@@ -215,6 +226,9 @@ public class ConfigManager {
     defaults.setProperty("parking.fee.bus", String.valueOf(DEFAULT_PARKING_FEE_BUS));
     defaults.setProperty(
         "parking.fee.tempotraveller", String.valueOf(DEFAULT_PARKING_FEE_TEMPOTRAVELLER));
+    defaults.setProperty(
+        "update.connection.timeout.seconds",
+        String.valueOf(DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS));
     defaults.setProperty("dev.mode", String.valueOf(DEFAULT_DEV_MODE));
     defaults.setProperty("printer.name", "");
 

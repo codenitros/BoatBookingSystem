@@ -1,5 +1,6 @@
 package com.boatticket.update;
 
+import com.boatticket.config.ConfigManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -30,7 +31,8 @@ public final class UpdateService {
       URI.create(
           "https://raw.githubusercontent.com/codenitros/BoatBookingSystemReleases/main/metadata/stable.json");
   private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration CONNECT_TIMEOUT =
+      Duration.ofSeconds(ConfigManager.getUpdateConnectionTimeoutSeconds());
   private static final Pattern VERSION_PATTERN =
       Pattern.compile("\\\"version\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
   private static final Pattern INSTALLER_URL_PATTERN =
