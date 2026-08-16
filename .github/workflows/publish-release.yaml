@@ -164,7 +164,6 @@ jobs:
             --add-modules "${{ steps.runtime.outputs.modules }}" `
             --java-options "--add-modules=${{ steps.runtime.outputs.modules }}" `
             --icon src/main/resources/BoatBookingSystem.ico `
-            --resource-dir src/main/installer/windows `
             --dest dist `
             --win-dir-chooser `
             --win-console `
