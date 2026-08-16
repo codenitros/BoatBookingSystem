@@ -24,9 +24,9 @@ import java.util.Properties;
  * </pre>
  *
  * That external copy is what actually gets read from then on. To change a price, the dev.mode
- * toggle, printer name, or update timeout after deployment, edit that external file and restart
- * the app (or call {@link #reload()} if you want a running app to pick up an edit made while it's
- * open) — no rebuild required.
+ * toggle, printer name, or update timeout after deployment, edit that external file and restart the
+ * app (or call {@link #reload()} if you want a running app to pick up an edit made while it's open)
+ * — no rebuild required.
  */
 public class ConfigManager {
 
