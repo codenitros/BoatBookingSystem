@@ -416,15 +416,24 @@ public class BookingController implements Initializable {
     passengerCapacityValidationLabel.setText("");
 
     rb1Hour.setSelected(true);
-    parkingCheckBox.setSelected(false);
-    vehicleGroup.selectToggle(null);
-    vehicleNumberField.clear();
+    resetParkingFields();
     boatSearchField.clear();
     boatComboBox.setValue(null);
     boatComboBox.setItems(allBoats);
     boatDetailsLabel.setText("");
 
     refreshFees();
+  }
+
+  /**
+   * Restores every parking control, including the parking form visibility, to its initial state.
+   */
+  private void resetParkingFields() {
+    parkingCheckBox.setSelected(false);
+    parkingBox.setVisible(false);
+    parkingBox.setManaged(false);
+    vehicleGroup.selectToggle(null);
+    vehicleNumberField.clear();
   }
 
   @FXML
