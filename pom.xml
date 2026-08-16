@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.boatticket</groupId>
-    <artifactId>HonnavarBoatTicketSystem</artifactId>
+    <artifactId>BoatTicketSystem</artifactId>
     <version>1.0.4</version>
     <packaging>jar</packaging>
 
@@ -74,12 +74,15 @@
     </dependencies>
 
     <build>
+        <finalName>${tenant.artifactName}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
                     <exclude>version.properties</exclude>
+                    <exclude>Config.properties</exclude>
+                    <exclude>boats.csv</exclude>
                 </excludes>
             </resource>
             <resource>
@@ -99,6 +102,28 @@
             <!--                    <mainClass>com.boatticket.MainApp</mainClass>-->
             <!--                </configuration>-->
             <!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-tenant-resources</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/tenants/${tenant.id}</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -172,4 +197,22 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>honnavar</id>
+            <activation><activeByDefault>true</activeByDefault></activation>
+            <properties>
+                <tenant.id>honnavar</tenant.id>
+                <tenant.artifactName>HonnavarBoatTicketSystem</tenant.artifactName>
+            </properties>
+        </profile>
+        <profile>
+            <id>kasarkod</id>
+            <properties>
+                <tenant.id>kasarkod</tenant.id>
+                <tenant.artifactName>KasarkodBoatTicketSystem</tenant.artifactName>
+            </properties>
+        </profile>
+    </profiles>
 </project>

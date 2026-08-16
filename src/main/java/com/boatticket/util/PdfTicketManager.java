@@ -1,5 +1,6 @@
 package com.boatticket.util;
 
+import com.boatticket.config.ConfigManager;
 import com.boatticket.model.Ticket;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
@@ -100,19 +101,19 @@ public class PdfTicketManager {
     File downloads = new File(userHome, "Downloads");
 
     if (downloads.exists() && downloads.isDirectory()) {
-      return new File(downloads, "BoatTickets");
+      return new File(downloads, "BoatTickets" + File.separator + ConfigManager.getTenantId());
     }
 
     // Fallback: a dedicated folder in the user's home directory
-    return new File(userHome, "BoatTickets");
+    return new File(userHome, "BoatTickets" + File.separator + ConfigManager.getTenantId());
   }
 
   private static void addContent(Document document, Ticket ticket) throws DocumentException {
-    Paragraph title = new Paragraph("SHARAVATI BACKWATER BOATING", TITLE_FONT);
+    Paragraph title = new Paragraph(ConfigManager.getReceiptHeader(), TITLE_FONT);
     title.setAlignment(Element.ALIGN_CENTER);
     document.add(title);
 
-    Paragraph subtitle = new Paragraph("HONNAVAR, RECEIPT", SUB_FONT);
+    Paragraph subtitle = new Paragraph(ConfigManager.getReceiptLocation() + ", RECEIPT", SUB_FONT);
     subtitle.setAlignment(Element.ALIGN_CENTER);
     subtitle.setSpacingAfter(4f);
     document.add(subtitle);

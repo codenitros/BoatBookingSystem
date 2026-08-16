@@ -11,7 +11,7 @@
     <!-- Header -->
     <VBox styleClass="header-banner" alignment="CENTER">
         <padding><Insets top="28" bottom="28" left="20" right="20"/></padding>
-        <Label text="🚤  Sharavati Backwater Boating Honnavar Ticket System" styleClass="header-title"/>
+        <Label fx:id="tenantTitleLabel" styleClass="header-title"/>
         <Label text="Agent Login" styleClass="header-sub"/>
     </VBox>
 

@@ -3,9 +3,17 @@ name: Publish Windows release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "honnavar-v*.*.*"
+      - "kasarkod-v*.*.*"
   workflow_dispatch:
     inputs:
+      tenant:
+        description: "Tenant release channel"
+        required: true
+        type: choice
+        options:
+          - honnavar
+          - kasarkod
       version:
         description: "Release version (must match pom.xml, for example 1.2.0)"
         required: true
@@ -20,7 +28,6 @@ jobs:
     env:
       RELEASE_REPOSITORY: ${{ vars.RELEASE_REPOSITORY }}
       GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
-      JPACKAGE_UPGRADE_UUID: 616ff3db-c1ac-4a4c-ac3a-7a75bfd55c75
     steps:
       - name: Check out application source
         uses: actions/checkout@v4
@@ -82,26 +89,48 @@ jobs:
           $namespaceManager.AddNamespace("m", "http://maven.apache.org/POM/4.0.0")
           $projectVersion = $pom.SelectSingleNode("/m:project/m:version", $namespaceManager).InnerText.Trim()
           if ("${{ github.event_name }}" -eq "push") {
-            $releaseVersion = "${{ github.ref_name }}".TrimStart("v")
+            if ("${{ github.ref_name }}" -notmatch "^(honnavar|kasarkod)-v(\d+\.\d+\.\d+)$") {
+              throw "Release tags must be honnavar-vMAJOR.MINOR.PATCH or kasarkod-vMAJOR.MINOR.PATCH."
+            }
+            $tenant = $Matches[1]
+            $releaseVersion = $Matches[2]
           } else {
+            $tenant = "${{ inputs.tenant }}"
             $releaseVersion = "${{ inputs.version }}"
           }
           if ($projectVersion -ne $releaseVersion) {
             throw "Release version '$releaseVersion' must match pom.xml version '$projectVersion'."
           }
+          switch ($tenant) {
+            "honnavar" {
+              $artifactName = "HonnavarBoatTicketSystem"
+              $tenantDisplayName = "Honnavar"
+              $upgradeUuid = "616ff3db-c1ac-4a4c-ac3a-7a75bfd55c75"
+            }
+            "kasarkod" {
+              $artifactName = "KasarkodBoatTicketSystem"
+              $tenantDisplayName = "Kasarkod"
+              $upgradeUuid = "a1c94d17-c50f-4a8b-a419-7b7bb6e30913"
+            }
+            default { throw "Unknown tenant '$tenant'." }
+          }
           "version=$releaseVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "tenant=$tenant" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "artifactName=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "tenantDisplayName=$tenantDisplayName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "upgradeUuid=$upgradeUuid" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Verify and build application JAR
         shell: pwsh
         run: |
           mvn -B -V -q com.diffplug.spotless:spotless-maven-plugin:2.31.0:check
-          mvn -B -V -q clean verify
+          mvn -B -V -q clean verify -P${{ steps.release.outputs.tenant }}
 
       - name: Determine the runtime modules required by the application
         id: runtime
         shell: pwsh
         run: |
-          $jar = "target/HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar"
+          $jar = "target/${{ steps.release.outputs.artifactName }}.jar"
           $runtimeModules = (& jdeps `
             --ignore-missing-deps `
             --multi-release 17 `
@@ -124,12 +153,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           jpackage `
             --type msi `
-            --name BoatBookingSystem `
+            --name "BoatBookingSystem-${{ steps.release.outputs.tenantDisplayName }}" `
             --app-version "${{ steps.release.outputs.version }}" `
             --vendor "Codenitros" `
-            --description "Sharavati Backwater Boating Honnavar Ticket Booking" `
+            --description "Sharavati Backwater Boating ${{ steps.release.outputs.tenantDisplayName }} Ticket Booking" `
             --input target `
-            --main-jar HonnavarBoatTicketSystem-${{ steps.release.outputs.version }}.jar `
+            --main-jar ${{ steps.release.outputs.artifactName }}.jar `
             --main-class com.boatticket.ApplicationLauncher `
             --module-path "$env:JAVA_HOME\jmods;${{ steps.javafx.outputs.path }}" `
             --add-modules "${{ steps.runtime.outputs.modules }}" `
@@ -139,10 +168,10 @@ jobs:
             --win-dir-chooser `
             --win-console `
             --win-menu `
-            --win-menu-group "Boat Booking System" `
+            --win-menu-group "Boat Booking System - ${{ steps.release.outputs.tenantDisplayName }}" `
             --win-shortcut `
             --win-shortcut-prompt `
-            --win-upgrade-uuid $env:JPACKAGE_UPGRADE_UUID
+            --win-upgrade-uuid ${{ steps.release.outputs.upgradeUuid }}
 
       - name: Check out public release repository
         uses: actions/checkout@v4
@@ -159,21 +188,24 @@ jobs:
             throw "MSI installer was not produced."
           }
           $version = "${{ steps.release.outputs.version }}"
-          gh release create "v$version" $installer.FullName --repo $env:RELEASE_REPOSITORY --title "Boat Booking System $version" --generate-notes
+          $tenant = "${{ steps.release.outputs.tenant }}"
+          $tenantDisplayName = "${{ steps.release.outputs.tenantDisplayName }}"
+          $releaseTag = "$tenant-v$version"
+          gh release create $releaseTag $installer.FullName --repo $env:RELEASE_REPOSITORY --title "$tenantDisplayName Boat Booking System $version" --generate-notes
 
           $sha256 = (Get-FileHash -Path $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           $manifest = [ordered]@{
             version = $version
             publishedAt = (Get-Date).ToUniversalTime().ToString("o")
-            installerUrl = "https://github.com/$env:RELEASE_REPOSITORY/releases/download/v$version/$($installer.Name)"
+            installerUrl = "https://github.com/$env:RELEASE_REPOSITORY/releases/download/$releaseTag/$($installer.Name)"
             sha256 = $sha256
           } | ConvertTo-Json
-          New-Item -ItemType Directory -Force -Path release-repository\metadata | Out-Null
-          Set-Content -Path release-repository\metadata\stable.json -Value $manifest -NoNewline
+          New-Item -ItemType Directory -Force -Path "release-repository\metadata\$tenant" | Out-Null
+          Set-Content -Path "release-repository\metadata\$tenant\stable.json" -Value $manifest -NoNewline
 
           Set-Location release-repository
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metadata/stable.json
-          git commit -m "Publish release $version"
+          git add "metadata/$tenant/stable.json"
+          git commit -m "Publish $tenant release $version"
           git push

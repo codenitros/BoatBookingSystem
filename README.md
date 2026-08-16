@@ -1,6 +1,6 @@
-# 🚤 Sharavati Backwater Boating Honnavar Ticket Booking System
+# 🚤 Sharavati Backwater Boating Ticket Booking System
 
-A JavaFX 17 desktop application for booking boat ride tickets at Sharavati Backwater Boating Honnavar, with thermal printing, database storage, and Excel export.
+A JavaFX 17 desktop application for booking boat ride tickets for the Honnavar and Kasarkod tenants, with thermal printing, database storage, and Excel export.
 
 ---
 
@@ -146,27 +146,27 @@ java -jar target/BoatTicketSystem-2.0-SNAPSHOT.jar
 
 ---
 
-## 🚀 Creating a Self-Contained Executable (Windows .exe)
+## 🚀 Building tenant-specific artifacts
 
-This project is configured to create a self-contained executable that bundles all dependencies into a single JAR file and wraps it in a Windows executable.
+Build each tenant explicitly. The packaged configuration, boat list, branding, local data directory,
+and update feed are selected by its Maven profile.
 
 ### Build the distributable package:
 
-**Option 1: Using the build script (recommended):**
 ```bash
-# Double-click build-exe.bat or run:
-build-exe.bat
+mvn clean package -Phonnavar
+mvn clean package -Pkasarkod
 ```
 
-**Option 2: Using Maven directly:**
-```bash
-mvn clean package
+To build both artifacts in one command on Windows:
+
+```powershell
+.\scripts\build-tenants.ps1
 ```
 
-This will create:
-- `target/BoatTicketSystem-2.0-SNAPSHOT.jar` - Fat JAR with all dependencies
-- `target/BoatTicketSystem.exe` - Windows executable
-- `target/BoatTicketSystem-2.0-SNAPSHOT-distribution.zip` - Complete distribution package
+This creates either `HonnavarBoatTicketSystem-<version>.jar` or
+`KasarkodBoatTicketSystem-<version>.jar`. The release workflow creates the corresponding
+self-contained Windows MSI installer.
 
 ### What's included in the distribution:
 

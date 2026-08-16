@@ -18,7 +18,7 @@
             <padding>
                 <Insets top="14" bottom="14" left="20" right="20"/>
             </padding>
-            <Label text="🚤 Sharavati Backwater Boating Honnavar Ticket Booking" styleClass="header-title"/>
+            <Label fx:id="tenantTitleLabel" styleClass="header-title"/>
             <Label text="Scenic Boat Ride  •  Allocate Boat &amp; Generate Ticket" styleClass="header-sub"/>
         </VBox>
 

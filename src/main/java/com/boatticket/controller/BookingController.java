@@ -61,6 +61,7 @@ public class BookingController implements Initializable {
   @FXML private Label counterAmountLabel;
   @FXML private Label statusLabel;
   @FXML private Label loggedInLabel;
+  @FXML private Label tenantTitleLabel;
 
   @FXML private Button generateBtn;
   @FXML private Button resetBtn;
@@ -74,6 +75,7 @@ public class BookingController implements Initializable {
 
   @Override
   public void initialize(URL url, ResourceBundle resourceBundle) {
+    tenantTitleLabel.setText("🚤 " + ConfigManager.getApplicationName());
     loggedInLabel.setText(
         "Logged in as:  " + MainApp.loggedInUser + "  [" + MainApp.loggedInRole + "]");
 

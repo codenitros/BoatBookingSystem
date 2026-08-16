@@ -153,8 +153,8 @@ public class ThermalPrinterManager {
     StringBuilder sb = new StringBuilder();
 
     // Header
-    sb.append(centerText("SHARAVATI BACKWATER BOATING")).append("\n");
-    sb.append(centerText("HONNAVAR, RECEIPT")).append("\n");
+    sb.append(centerText(ConfigManager.getReceiptHeader())).append("\n");
+    sb.append(centerText(ConfigManager.getReceiptLocation() + ", RECEIPT")).append("\n");
     sb.append(SEPARATOR).append("\n");
     sb.append("\n");
 

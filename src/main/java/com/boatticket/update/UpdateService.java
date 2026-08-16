@@ -27,9 +27,6 @@ import java.util.regex.Pattern;
  */
 public final class UpdateService {
   private static final Logger LOGGER = Logger.getLogger(UpdateService.class.getName());
-  private static final URI MANIFEST_URI =
-      URI.create(
-          "https://raw.githubusercontent.com/codenitros/BoatBookingSystemReleases/main/metadata/stable.json");
   private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
   private static final Duration CONNECT_TIMEOUT =
       Duration.ofSeconds(ConfigManager.getUpdateConnectionTimeoutSeconds());
@@ -110,9 +107,10 @@ public final class UpdateService {
 
   private Optional<UpdateInfo> fetchUpdate() {
     try {
-      LOGGER.info(() -> "Requesting update metadata from " + MANIFEST_URI);
+      URI manifestUri = URI.create(ConfigManager.getUpdateManifestUrl());
+      LOGGER.info(() -> "Requesting update metadata from " + manifestUri);
       HttpRequest request =
-          HttpRequest.newBuilder(MANIFEST_URI).timeout(REQUEST_TIMEOUT).GET().build();
+          HttpRequest.newBuilder(manifestUri).timeout(REQUEST_TIMEOUT).GET().build();
       HttpResponse<String> response =
           httpClient.send(request, HttpResponse.BodyHandlers.ofString());
       LOGGER.info(

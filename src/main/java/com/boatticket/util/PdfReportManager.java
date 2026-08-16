@@ -1,5 +1,6 @@
 package com.boatticket.util;
 
+import com.boatticket.config.ConfigManager;
 import com.boatticket.model.TicketReport;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfPCell;
@@ -77,7 +78,10 @@ public class PdfReportManager {
       int totalParkingFee)
       throws DocumentException {
 
-    Paragraph title = new Paragraph("SHARAVATI BACKWATER BOATING - HONNAVAR", TITLE_FONT);
+    Paragraph title =
+        new Paragraph(
+            ConfigManager.getReceiptHeader() + " - " + ConfigManager.getReceiptLocation(),
+            TITLE_FONT);
     title.setAlignment(Element.ALIGN_CENTER);
     document.add(title);
 
