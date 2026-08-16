@@ -1,6 +1,7 @@
 package com.boatticket.controller;
 
 import com.boatticket.MainApp;
+import com.boatticket.config.ConfigManager;
 import com.boatticket.db.DatabaseManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -10,10 +11,16 @@ import javafx.stage.Stage;
 
 public class LoginController {
 
+  @FXML private Label tenantTitleLabel;
   @FXML private TextField usernameField;
   @FXML private PasswordField passwordField;
   @FXML private Label errorLabel;
   @FXML private Button loginBtn;
+
+  @FXML
+  private void initialize() {
+    tenantTitleLabel.setText("🚤  " + ConfigManager.getApplicationName() + " System");
+  }
 
   @FXML
   private void handleLogin() {

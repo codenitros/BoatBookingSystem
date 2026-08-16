@@ -1,5 +1,6 @@
 package com.boatticket.db;
 
+import com.boatticket.config.ConfigManager;
 import com.boatticket.model.BoatOwner;
 import com.boatticket.model.Ticket;
 import com.boatticket.model.TicketReport;
@@ -13,6 +14,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -33,7 +35,9 @@ import org.mindrot.jbcrypt.BCrypt;
 
 public class DatabaseManager {
 
-  private static final String DB_DIR =
+  private static final String DB_DIR = ConfigManager.getAppDirectory();
+
+  private static final String LEGACY_HONNAVAR_DB_DIR =
       System.getProperty("user.home") + File.separator + "BoatTicketSystem";
 
   private static final String DB_PATH = DB_DIR + File.separator + "tickets.db";
@@ -62,6 +66,7 @@ public class DatabaseManager {
   private DatabaseManager() {
     try {
       new File(DB_DIR).mkdirs();
+      migrateLegacyHonnavarData();
       copyBoatsCsvIfNeeded();
       initSchema();
       seedData();
@@ -320,6 +325,33 @@ public class DatabaseManager {
           Files.copy(inputStream, csvPath);
         }
       }
+    }
+  }
+
+  /**
+   * Keeps existing Honnavar installations working after tenant data was separated into individual
+   * folders. Kasarkod never reads the legacy shared directory, so tenant data remains isolated.
+   */
+  private static void migrateLegacyHonnavarData() throws IOException {
+    if (!"honnavar".equals(ConfigManager.getPackagedTenantId())) {
+      return;
+    }
+
+    Path legacyDirectory = Paths.get(LEGACY_HONNAVAR_DB_DIR);
+    if (!Files.isDirectory(legacyDirectory)) {
+      return;
+    }
+
+    copyLegacyFile(legacyDirectory, "tickets.db");
+    copyLegacyFile(legacyDirectory, "boats.csv");
+    copyLegacyFile(legacyDirectory, "Config.properties");
+  }
+
+  private static void copyLegacyFile(Path legacyDirectory, String filename) throws IOException {
+    Path source = legacyDirectory.resolve(filename);
+    Path destination = Paths.get(DB_DIR, filename);
+    if (Files.isRegularFile(source) && !Files.exists(destination)) {
+      Files.copy(source, destination, StandardCopyOption.COPY_ATTRIBUTES);
     }
   }
 

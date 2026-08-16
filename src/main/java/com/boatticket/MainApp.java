@@ -1,5 +1,6 @@
 package com.boatticket;
 
+import com.boatticket.config.ConfigManager;
 import com.boatticket.db.DatabaseManager;
 import com.boatticket.update.UpdateInfo;
 import com.boatticket.update.UpdateService;
@@ -35,7 +36,7 @@ public class MainApp extends Application {
     scene
         .getStylesheets()
         .add(MainApp.class.getResource("/com/boatticket/styles.css").toExternalForm());
-    stage.setTitle("Sharavati Backwater Boating Honnavar Ticket Booking  —  Login");
+    stage.setTitle(ConfigManager.getApplicationName() + "  —  Login");
     stage.setScene(scene);
     stage.setResizable(false);
     stage.show();
@@ -47,7 +48,7 @@ public class MainApp extends Application {
     scene
         .getStylesheets()
         .add(MainApp.class.getResource("/com/boatticket/styles.css").toExternalForm());
-    stage.setTitle("Sharavati Backwater Boating Honnavar Ticket Booking  —  " + loggedInUser);
+    stage.setTitle(ConfigManager.getApplicationName() + "  —  " + loggedInUser);
     stage.setScene(scene);
     stage.setMinWidth(860);
     stage.setMinHeight(720);

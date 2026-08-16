@@ -12,15 +12,14 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
- * Single source of truth for all app configuration — ticket prices, the dev-mode PDF toggle, and
- * the printer name override. Replaces the previous {@code PriceManager} + {@code AppConfig} pair,
- * which each loaded their own separate properties file; everything now lives in one bundled {@code
- * src/main/resources/Config.properties}.
+ * Single source of truth for each tenant's branding, ticket prices, updater endpoint, dev-mode PDF
+ * toggle, and printer name override. Each packaged tenant includes its own bundled {@code
+ * Config.properties}.
  *
  * <p>On first run, that bundled default is copied to the external, user-editable location:
  *
  * <pre>
- *   &lt;user home&gt;/BoatTicketSystem/Config.properties
+ *   &lt;user home&gt;/BoatTicketSystem/&lt;tenant&gt;/Config.properties
  * </pre>
  *
  * That external copy is what actually gets read from then on. To change a price, the dev.mode
@@ -30,8 +29,13 @@ import java.util.Properties;
  */
 public class ConfigManager {
 
+  private static final String TENANT_ID = bundledTenantId();
   private static final String APP_DIR =
-      System.getProperty("user.home") + File.separator + "BoatTicketSystem";
+      System.getProperty("user.home")
+          + File.separator
+          + "BoatTicketSystem"
+          + File.separator
+          + TENANT_ID;
 
   private static final String CONFIG_FILE_PATH = APP_DIR + File.separator + "Config.properties";
 
@@ -91,6 +95,51 @@ public class ConfigManager {
     int timeout =
         getInt("update.connection.timeout.seconds", DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS);
     return timeout > 0 ? timeout : DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS;
+  }
+
+  // ------------------------------------------------------------------
+  // Tenant branding and release channel
+  // ------------------------------------------------------------------
+
+  public static String getTenantId() {
+    return getString("tenant.id", TENANT_ID);
+  }
+
+  /** Returns the tenant selected when this application artifact was packaged. */
+  public static String getPackagedTenantId() {
+    return TENANT_ID;
+  }
+
+  public static String getTenantName() {
+    return getString("tenant.name", "Honnavar");
+  }
+
+  public static String getBrandName() {
+    return getString("brand.name", "Sharavati Backwater Boating");
+  }
+
+  public static String getApplicationName() {
+    return getBrandName() + " " + getTenantName() + " Ticket Booking";
+  }
+
+  public static String getReceiptHeader() {
+    return getString("receipt.header", getBrandName().toUpperCase());
+  }
+
+  public static String getReceiptLocation() {
+    return getString("receipt.location", getTenantName().toUpperCase());
+  }
+
+  public static String getUpdateManifestUrl() {
+    return getString(
+        "update.manifest.url",
+        "https://raw.githubusercontent.com/codenitros/BoatBookingSystemReleases/main/metadata/"
+            + TENANT_ID
+            + "/stable.json");
+  }
+
+  public static String getAppDirectory() {
+    return APP_DIR;
   }
 
   // ------------------------------------------------------------------
@@ -165,6 +214,11 @@ public class ConfigManager {
     }
   }
 
+  private static String getString(String key, String fallback) {
+    String value = getProperties().getProperty(key);
+    return value == null || value.isBlank() ? fallback : value.trim();
+  }
+
   private static synchronized Properties getProperties() {
     if (cachedProperties == null) {
       cachedProperties = load();
@@ -207,6 +261,13 @@ public class ConfigManager {
       return;
     }
 
+    Path legacyHonnavarConfig =
+        Paths.get(System.getProperty("user.home"), "BoatTicketSystem", "Config.properties");
+    if ("honnavar".equals(TENANT_ID) && Files.isRegularFile(legacyHonnavarConfig)) {
+      Files.copy(legacyHonnavarConfig, configFilePath);
+      return;
+    }
+
     try (InputStream bundledDefaults =
         ConfigManager.class.getClassLoader().getResourceAsStream("Config.properties")) {
       if (bundledDefaults != null) {
@@ -219,6 +280,16 @@ public class ConfigManager {
 
   private static void writeHardcodedDefaults(Path configFilePath) throws IOException {
     Properties defaults = new Properties();
+    defaults.setProperty("tenant.id", TENANT_ID);
+    defaults.setProperty("tenant.name", "Honnavar");
+    defaults.setProperty("brand.name", "Sharavati Backwater Boating");
+    defaults.setProperty("receipt.header", "SHARAVATI BACKWATER BOATING");
+    defaults.setProperty("receipt.location", "HONNAVAR");
+    defaults.setProperty(
+        "update.manifest.url",
+        "https://raw.githubusercontent.com/codenitros/BoatBookingSystemReleases/main/metadata/"
+            + TENANT_ID
+            + "/stable.json");
     defaults.setProperty("boat.ride.fee.per.hour", String.valueOf(DEFAULT_BOAT_RIDE_FEE_PER_HOUR));
     defaults.setProperty("boat.ride.fee.2hours", String.valueOf(DEFAULT_BOAT_RIDE_FEE_2HOURS));
     defaults.setProperty("life.jacket.fee", String.valueOf(DEFAULT_LIFE_JACKET_FEE));
@@ -235,5 +306,22 @@ public class ConfigManager {
     try (OutputStream outputStream = new FileOutputStream(configFilePath.toFile())) {
       defaults.store(outputStream, "Boat Booking System - application configuration");
     }
+  }
+
+  private static String bundledTenantId() {
+    try (InputStream bundledDefaults =
+        ConfigManager.class.getClassLoader().getResourceAsStream("Config.properties")) {
+      if (bundledDefaults != null) {
+        Properties defaults = new Properties();
+        defaults.load(bundledDefaults);
+        String tenantId = defaults.getProperty("tenant.id");
+        if (tenantId != null && tenantId.matches("[a-z0-9-]+")) {
+          return tenantId;
+        }
+      }
+    } catch (IOException ignored) {
+      // A safe default keeps existing Honnavar installations readable if resources are damaged.
+    }
+    return "honnavar";
   }
 }
