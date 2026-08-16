@@ -425,7 +425,9 @@ public class BookingController implements Initializable {
     refreshFees();
   }
 
-  /** Restores every parking control, including the parking form visibility, to its initial state. */
+  /**
+   * Restores every parking control, including the parking form visibility, to its initial state.
+   */
   private void resetParkingFields() {
     parkingCheckBox.setSelected(false);
     parkingBox.setVisible(false);
