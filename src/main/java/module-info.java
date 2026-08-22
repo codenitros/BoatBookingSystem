@@ -24,4 +24,5 @@ module com.boatticket {
   exports com.boatticket.util;
   exports com.boatticket.db;
   exports com.boatticket.config;
+  exports com.boatticket.backup;
 }

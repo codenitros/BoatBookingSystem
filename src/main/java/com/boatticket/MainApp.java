@@ -1,5 +1,6 @@
 package com.boatticket;
 
+import com.boatticket.backup.DailyBackupService;
 import com.boatticket.config.ConfigManager;
 import com.boatticket.db.DatabaseManager;
 import com.boatticket.update.UpdateInfo;
@@ -24,6 +25,7 @@ public class MainApp extends Application {
   public void start(Stage primaryStage) throws Exception {
     // Initialise DB on startup
     DatabaseManager.getInstance();
+    DailyBackupService.runIfDueAsync();
     Image image = new Image("icons8-boat-48.png");
     primaryStage.getIcons().add(image);
     showLogin(primaryStage);
