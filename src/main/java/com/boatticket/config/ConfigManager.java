@@ -55,6 +55,10 @@ public class ConfigManager {
   // causes PDFs to be generated at a real deployed counter.
   private static final boolean DEFAULT_DEV_MODE = false;
 
+  // Keep this false so a broken/missing config never accidentally pops
+  // open a console window at a real deployed counter.
+  private static final boolean DEFAULT_CONSOLE_ENABLED = false;
+
   private static Properties cachedProperties;
 
   private ConfigManager() {}
@@ -164,6 +168,28 @@ public class ConfigManager {
   }
 
   // ------------------------------------------------------------------
+  // Console toggle
+  // ------------------------------------------------------------------
+
+  /**
+   * True: a visible log console window is opened at startup, live-showing everything the app logs.
+   *
+   * <p>False (default, and what every shipped tenant config uses): no console window is ever shown,
+   * regardless of {@link #isDevMode()} — the two flags are independent. The packaged app is always
+   * a GUI-subsystem executable with no native console, so this is what actually controls whether
+   * {@link LoggingConfigurator} spawns its own visible log window.
+   */
+  public static boolean isConsoleEnabled() {
+    String value = getProperties().getProperty("console");
+
+    if (value == null || value.isBlank()) {
+      return DEFAULT_CONSOLE_ENABLED;
+    }
+
+    return Boolean.parseBoolean(value.trim());
+  }
+
+  // ------------------------------------------------------------------
   // Printer
   // ------------------------------------------------------------------
 
@@ -241,6 +267,8 @@ public class ConfigManager {
       System.out.println(
           "[ConfigManager] dev.mode = "
               + props.getProperty("dev.mode")
+              + ", console = "
+              + props.getProperty("console")
               + ", printer.name = "
               + props.getProperty("printer.name"));
     } catch (IOException e) {
@@ -301,6 +329,7 @@ public class ConfigManager {
         "update.connection.timeout.seconds",
         String.valueOf(DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS));
     defaults.setProperty("dev.mode", String.valueOf(DEFAULT_DEV_MODE));
+    defaults.setProperty("console", String.valueOf(DEFAULT_CONSOLE_ENABLED));
     defaults.setProperty("printer.name", "");
 
     try (OutputStream outputStream = new FileOutputStream(configFilePath.toFile())) {
