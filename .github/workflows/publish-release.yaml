@@ -167,7 +167,6 @@ jobs:
             --dest dist `
             --win-dir-chooser `
             --win-menu `
-            --win-console `
             --win-menu-group "Boat Booking System - ${{ steps.release.outputs.tenantDisplayName }}" `
             --win-shortcut `
             --win-shortcut-prompt `
