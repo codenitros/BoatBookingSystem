@@ -204,11 +204,17 @@ public class ThermalPrinterManager {
         .append("\n\n");
     if (ticket.getBoatOwner() != null) {
       sb.append(bold("       DRIVER & BOAT DETAILS")).append("\n").append(rule(lineWidth));
+      sb.append(
+              formatLine(
+                  "       Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
+          .append("\n\n");
       sb.append(formatLine("       Driver:", ticket.getBoatOwner().getDriverName(), lineWidth))
           .append("\n\n");
       sb.append(formatLine("       Driver Number:", ticket.getBoatOwner().getContact(), lineWidth))
           .append("\n");
       sb.append(formatLine("       Boat HR:", ticket.getBoatOwner().getBoatHRNumber(), lineWidth))
+          .append("\n");
+      sb.append(formatLine("       Jetty:", ticket.getBoatOwner().getJetty(), lineWidth))
           .append("\n");
       sb.append(
               formatLine(
@@ -256,7 +262,7 @@ public class ThermalPrinterManager {
         .append(rule(lineWidth))
         .append(bold(centerText("       Thank You!", lineWidth)))
         .append("\n")
-        .append(bold(centerText("       Safe & Happy Journey", lineWidth)))
+        .append(bold(centerText("       Safe & Happy Riding", lineWidth)))
         .append("\n")
         .toString();
   }

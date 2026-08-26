@@ -654,14 +654,16 @@ public class BookingController implements Initializable {
 
     Label ticketDetails =
         new Label(
-            "Customer: "
+            "Driver SL No: "
+                + ticket.getBoatOwner().getId()
+                + "  |  Driver Name: "
+                + ticket.getBoatOwner().getDriverName()
+                + "  |  Customer: "
                 + ticket.getCustomerName()
                 + "  |  Ticket ID: "
                 + ticket.getTicketId()
                 + "  |  Time: "
-                + ticket.getFormattedBookingTime()
-                + "  |  Driver: "
-                + driverName);
+                + ticket.getFormattedBookingTime());
 
     ticketDetails.setWrapText(true);
     ticketDetails.setMaxWidth(Double.MAX_VALUE);
