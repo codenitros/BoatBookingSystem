@@ -29,6 +29,14 @@ import java.util.Properties;
  */
 public class ConfigManager {
 
+  // TVSE RP4230 at 203 dpi: an 80 mm roll with a 10 mm horizontal offset leaves 70 mm (560 dots)
+  // for ticket content. Normal ESC/POS font A fits 35 characters in that width.
+  private static final int DEFAULT_PRINTER_LEFT_MARGIN_DOTS = 80;
+  private static final int DEFAULT_PRINTER_WIDTH_DOTS = 560;
+  private static final int DEFAULT_PRINTER_CHARACTERS_PER_LINE = 35;
+  private static final int LEGACY_PRINTER_WIDTH_DOTS = 832;
+  private static final int LEGACY_PRINTER_CHARACTERS_PER_LINE = 52;
+
   private static final String TENANT_ID = bundledTenantId();
   private static final String APP_DIR =
       System.getProperty("user.home")
@@ -180,6 +188,27 @@ public class ConfigManager {
     return value == null ? "" : value.trim();
   }
 
+  /** Printable width, in dots, used when sending raw ESC/POS tickets. */
+  public static int getPrinterWidthDots() {
+    if (usesLegacy108MmPrinterProfile()) {
+      return DEFAULT_PRINTER_WIDTH_DOTS;
+    }
+    return getInt("printer.width.dots", DEFAULT_PRINTER_WIDTH_DOTS);
+  }
+
+  /** Left margin, in dots, used when sending raw ESC/POS tickets. */
+  public static int getPrinterLeftMarginDots() {
+    return getInt("printer.left.margin.dots", DEFAULT_PRINTER_LEFT_MARGIN_DOTS);
+  }
+
+  /** Characters per line for the printer's normal font. */
+  public static int getPrinterCharactersPerLine() {
+    if (usesLegacy108MmPrinterProfile()) {
+      return DEFAULT_PRINTER_CHARACTERS_PER_LINE;
+    }
+    return getInt("printer.characters.per.line", DEFAULT_PRINTER_CHARACTERS_PER_LINE);
+  }
+
   // ------------------------------------------------------------------
   // Shared plumbing
   // ------------------------------------------------------------------
@@ -212,6 +241,17 @@ public class ConfigManager {
     } catch (NumberFormatException e) {
       return fallback;
     }
+  }
+
+  /**
+   * Existing installations keep their external configuration when the app is updated. Recognize
+   * only the old stock 108 mm values as a pair, so those installations automatically use the new 80
+   * mm profile without overriding deliberately customized settings.
+   */
+  private static boolean usesLegacy108MmPrinterProfile() {
+    return LEGACY_PRINTER_WIDTH_DOTS == getInt("printer.width.dots", DEFAULT_PRINTER_WIDTH_DOTS)
+        && LEGACY_PRINTER_CHARACTERS_PER_LINE
+            == getInt("printer.characters.per.line", DEFAULT_PRINTER_CHARACTERS_PER_LINE);
   }
 
   private static String getString(String key, String fallback) {
@@ -302,6 +342,11 @@ public class ConfigManager {
         String.valueOf(DEFAULT_UPDATE_CONNECTION_TIMEOUT_SECONDS));
     defaults.setProperty("dev.mode", String.valueOf(DEFAULT_DEV_MODE));
     defaults.setProperty("printer.name", "");
+    defaults.setProperty(
+        "printer.left.margin.dots", String.valueOf(DEFAULT_PRINTER_LEFT_MARGIN_DOTS));
+    defaults.setProperty("printer.width.dots", String.valueOf(DEFAULT_PRINTER_WIDTH_DOTS));
+    defaults.setProperty(
+        "printer.characters.per.line", String.valueOf(DEFAULT_PRINTER_CHARACTERS_PER_LINE));
 
     try (OutputStream outputStream = new FileOutputStream(configFilePath.toFile())) {
       defaults.store(outputStream, "Boat Booking System - application configuration");
