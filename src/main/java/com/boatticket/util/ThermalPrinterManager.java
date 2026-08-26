@@ -203,13 +203,13 @@ public class ThermalPrinterManager {
     sb.append(formatLine("       Persons:", String.valueOf(ticket.getNumberOfPeople()), lineWidth))
         .append("\n\n");
     if (ticket.getBoatOwner() != null) {
-      sb.append(bold("       DRIVER & BOAT DETAILS")).append("\n").append(rule(lineWidth));
+      sb.append(bold("       DRIVER & BOAT DETAILS")).append(rule(lineWidth)).append("\n");
       sb.append(
               formatLine(
                   "       Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
-          .append("\n\n");
+          .append("\n");
       sb.append(formatLine("       Driver:", ticket.getBoatOwner().getDriverName(), lineWidth))
-          .append("\n\n");
+          .append("\n");
       sb.append(formatLine("       Driver Number:", ticket.getBoatOwner().getContact(), lineWidth))
           .append("\n");
       sb.append(formatLine("       Boat HR:", ticket.getBoatOwner().getBoatHRNumber(), lineWidth))
