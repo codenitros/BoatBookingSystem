@@ -41,6 +41,10 @@ public class ThermalPrinterManager {
     "microsoft print to pdf", "microsoft xps document writer", "onenote", "send to onenote", "fax"
   };
 
+  private static String leftPad(String text) {
+    return " ".repeat(ConfigManager.getPrinterTextLeftPaddingCharacters()) + text;
+  }
+
   public static PrintService resolvePrinter() throws PrintException {
     PrintService[] allPrinters = PrintServiceLookup.lookupPrintServices(null, null);
     String configuredName = ConfigManager.getPrinterName();
@@ -125,7 +129,12 @@ public class ThermalPrinterManager {
     BufferedImage logo = loadAndScaleLogo(printableWidth);
     int rasterWidth = Math.max(8, printableWidth - (printableWidth % 8)); // must be multiple of 8
     int bytesPerRow = rasterWidth / 8;
-    int logoLeft = Math.max(0, (rasterWidth - logo.getWidth()) / 2);
+
+    int centeredPosition = (rasterWidth - logo.getWidth()) / 2;
+    int requestedPosition = centeredPosition + ConfigManager.getPrinterLogoHorizontalOffsetDots();
+
+    int maximumPosition = Math.max(0, rasterWidth - logo.getWidth());
+    int logoLeft = Math.max(0, Math.min(requestedPosition, maximumPosition));
     output.write(
         new byte[] {
           0x1D,
@@ -195,8 +204,11 @@ public class ThermalPrinterManager {
   private static String formatTicketContent(Ticket ticket) {
     int lineWidth = configuredCharactersPerLine();
     StringBuilder sb = new StringBuilder();
-    sb.append(bold(centerText(ConfigManager.getReceiptHeader(), lineWidth))).append("\n");
-    sb.append(bold(centerText(ConfigManager.getReceiptLocation() + ", RECEIPT", lineWidth)))
+    sb.append(bold(centerTextWithPadding(ConfigManager.getReceiptHeader(), lineWidth)))
+        .append("\n");
+    sb.append(
+            bold(
+                centerTextWithPadding(ConfigManager.getReceiptLocation() + ", RECEIPT", lineWidth)))
         .append("\n");
     sb.append(rule(lineWidth));
     sb.append(formatLine("Ticket ID:", ticket.getTicketId(), lineWidth)).append("\n");
@@ -206,7 +218,7 @@ public class ThermalPrinterManager {
     sb.append(formatLine("People:", String.valueOf(ticket.getNumberOfPeople()), lineWidth))
         .append("\n\n");
     if (ticket.getBoatOwner() != null) {
-      sb.append(bold("DRIVER & BOAT DETAILS")).append("\n").append(rule(lineWidth));
+      sb.append(bold(leftPad("DRIVER & BOAT DETAILS"))).append("\n").append(rule(lineWidth));
       sb.append(
               formatLine("Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
           .append("\n");
@@ -220,7 +232,7 @@ public class ThermalPrinterManager {
       sb.append(formatLine("Capacity:", ticket.getBoatOwner().getCapacity() + " people", lineWidth))
           .append("\n\n");
     }
-    sb.append(bold("RIDE DETAILS")).append("\n").append(rule(lineWidth));
+    sb.append(bold(leftPad("RIDE DETAILS"))).append("\n").append(rule(lineWidth));
     sb.append(
             formatLineWithBoldValue(
                 "Duration:", ticket.getRideDurationInHour() + " Hour(s)", lineWidth))
@@ -234,7 +246,7 @@ public class ThermalPrinterManager {
         vehicle += " | " + ticket.getVehicleNumber().toUpperCase(Locale.ROOT);
       sb.append(formatLineWithBoldValue("Vehicle Parking:", vehicle, lineWidth)).append("\n");
     }
-    sb.append("\n").append(bold("FEE BREAKDOWN")).append("\n").append(rule(lineWidth));
+    sb.append("\n").append(bold(leftPad("FEE BREAKDOWN"))).append("\n").append(rule(lineWidth));
     sb.append(formatLineWithBoldValue("Boat Ride Fee:", "Rs " + ticket.getBoatRideFee(), lineWidth))
         .append("\n");
     if (ticket.isLifeJacketRequired())
@@ -244,21 +256,23 @@ public class ThermalPrinterManager {
       sb.append(formatLineWithBoldValue("Parking Fee:", "Rs " + ticket.getParkingFee(), lineWidth))
           .append("\n\n");
     if (ticket.getCounterPayable() > 0) {
-      sb.append(bold(centerText("PAYABLE AT COUNTER", lineWidth))).append("\n");
-      sb.append(bold(centerText("Rs " + ticket.getCounterPayable(), lineWidth))).append("\n");
-      sb.append(centerText("(PARKING FEE ONLY)", lineWidth)).append("\n");
+      sb.append(centerTextWithPadding("PAYABLE AT COUNTER", lineWidth)).append("\n");
+      sb.append(centerTextWithPadding("Rs " + ticket.getCounterPayable(), lineWidth)).append("\n");
+      sb.append(centerTextWithPadding("(PARKING FEE ONLY)", lineWidth)).append("\n");
     }
     return sb.append(rule(lineWidth))
-        .append(bold(centerText("Thank You!", lineWidth)))
+        .append(bold(centerTextWithPadding("Thank You!", lineWidth)))
         .append("\n")
-        .append(bold(centerText("Safe & Happy Boating", lineWidth)))
+        .append(bold(centerTextWithPadding("Safe & Happy Boating", lineWidth)))
         .append("\n")
         .toString();
   }
 
   /** ESC/POS underline mode makes one continuous rule, unlike a row of '=' glyphs. */
   private static String rule(int width) {
-    return "\u001B-\u0001" + " ".repeat(width) + "\u001B-\u0000\n";
+    int padding = ConfigManager.getPrinterTextLeftPaddingCharacters();
+    int ruleWidth = Math.max(0, width - padding);
+    return " ".repeat(padding) + "\u001B-\u0001" + "=".repeat(ruleWidth) + "\u001B-\u0000\n";
   }
 
   private static String bold(String text) {
@@ -266,19 +280,21 @@ public class ThermalPrinterManager {
   }
 
   private static String formatLine(String label, String value, int width) {
+    String paddedLabel = leftPad(label);
     String safeValue = value == null ? "" : value;
-    int gap = width - label.length() - safeValue.length();
+    int gap = width - paddedLabel.length() - safeValue.length();
     return gap < 1
-        ? label + "\n" + rightAlign(safeValue, width)
-        : label + " ".repeat(gap) + safeValue;
+        ? paddedLabel + "\n" + rightAlign(safeValue, width)
+        : paddedLabel + " ".repeat(gap) + safeValue;
   }
 
   private static String formatLineWithBoldValue(String label, String value, int width) {
+    String paddedLabel = leftPad(label);
     String safeValue = value == null ? "" : value;
-    int gap = width - label.length() - safeValue.length();
+    int gap = width - paddedLabel.length() - safeValue.length();
     return gap < 1
-        ? label + "\n" + " ".repeat(Math.max(0, width - safeValue.length())) + bold(safeValue)
-        : label + " ".repeat(gap) + bold(safeValue);
+        ? paddedLabel + "\n" + " ".repeat(Math.max(0, width - safeValue.length())) + bold(safeValue)
+        : paddedLabel + " ".repeat(gap) + bold(safeValue);
   }
 
   private static String rightAlign(String text, int width) {
@@ -327,5 +343,12 @@ public class ThermalPrinterManager {
     return printers == null || printers.length == 0
         ? "(none found)"
         : Stream.of(printers).map(PrintService::getName).collect(Collectors.joining(", "));
+  }
+
+  private static String centerTextWithPadding(String text, int width) {
+    int padding = ConfigManager.getPrinterTextLeftPaddingCharacters();
+    int usableWidth = Math.max(1, width - padding);
+
+    return " ".repeat(padding) + centerText(text, usableWidth);
   }
 }

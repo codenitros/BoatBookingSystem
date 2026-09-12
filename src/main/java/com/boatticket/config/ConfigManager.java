@@ -36,6 +36,10 @@ public class ConfigManager {
   private static final int DEFAULT_PRINTER_CHARACTERS_PER_LINE = 35;
   private static final int LEGACY_PRINTER_WIDTH_DOTS = 832;
   private static final int LEGACY_PRINTER_CHARACTERS_PER_LINE = 52;
+  private static final int DEFAULT_PRINTER_TEXT_LEFT_PADDING_CHARACTERS =
+      7; // 10 mm / 1.4 mm per character
+  private static final int DEFAULT_PRINTER_LOGO_HORIZONTAL_OFFSET_DOTS =
+      36; // 10 mm / 0.125 mm per dot
 
   private static final String TENANT_ID = bundledTenantId();
   private static final String APP_DIR =
@@ -347,6 +351,12 @@ public class ConfigManager {
     defaults.setProperty("printer.width.dots", String.valueOf(DEFAULT_PRINTER_WIDTH_DOTS));
     defaults.setProperty(
         "printer.characters.per.line", String.valueOf(DEFAULT_PRINTER_CHARACTERS_PER_LINE));
+    defaults.setProperty(
+        "printer.text.left.padding.characters",
+        String.valueOf(DEFAULT_PRINTER_TEXT_LEFT_PADDING_CHARACTERS));
+    defaults.setProperty(
+        "printer.logo.horizontal.offset.dots",
+        String.valueOf(DEFAULT_PRINTER_LOGO_HORIZONTAL_OFFSET_DOTS));
 
     try (OutputStream outputStream = new FileOutputStream(configFilePath.toFile())) {
       defaults.store(outputStream, "Boat Booking System - application configuration");
@@ -368,5 +378,17 @@ public class ConfigManager {
       // A safe default keeps existing Honnavar installations readable if resources are damaged.
     }
     return "honnavar";
+  }
+
+  public static int getPrinterTextLeftPaddingCharacters() {
+    return Math.max(
+        0,
+        getInt(
+            "printer.text.left.padding.characters", DEFAULT_PRINTER_TEXT_LEFT_PADDING_CHARACTERS));
+  }
+
+  public static int getPrinterLogoHorizontalOffsetDots() {
+    return getInt(
+        "printer.logo.horizontal.offset.dots", DEFAULT_PRINTER_LOGO_HORIZONTAL_OFFSET_DOTS);
   }
 }
