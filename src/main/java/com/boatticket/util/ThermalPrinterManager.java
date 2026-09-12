@@ -201,16 +201,14 @@ public class ThermalPrinterManager {
     sb.append(rule(lineWidth));
     sb.append(formatLine("Ticket ID:", ticket.getTicketId(), lineWidth)).append("\n");
     sb.append(
-            formatLine(
-                "Date & Time:", formatDateTime(ticket.getFormattedBookingTime()), lineWidth))
+            formatLine("Date & Time:", formatDateTime(ticket.getFormattedBookingTime()), lineWidth))
         .append("\n");
     sb.append(formatLine("People:", String.valueOf(ticket.getNumberOfPeople()), lineWidth))
         .append("\n\n");
     if (ticket.getBoatOwner() != null) {
       sb.append(bold("DRIVER & BOAT DETAILS")).append("\n").append(rule(lineWidth));
       sb.append(
-              formatLine(
-                  "Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
+              formatLine("Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
           .append("\n");
       sb.append(formatLine("Driver:", ticket.getBoatOwner().getDriverName(), lineWidth))
           .append("\n");
@@ -218,11 +216,8 @@ public class ThermalPrinterManager {
           .append("\n");
       sb.append(formatLine("Boat HR Number:", ticket.getBoatOwner().getBoatHRNumber(), lineWidth))
           .append("\n");
-      sb.append(formatLine("Jetty:", ticket.getBoatOwner().getJetty(), lineWidth))
-          .append("\n");
-      sb.append(
-              formatLine(
-                  "Capacity:", ticket.getBoatOwner().getCapacity() + " people", lineWidth))
+      sb.append(formatLine("Jetty:", ticket.getBoatOwner().getJetty(), lineWidth)).append("\n");
+      sb.append(formatLine("Capacity:", ticket.getBoatOwner().getCapacity() + " people", lineWidth))
           .append("\n\n");
     }
     sb.append(bold("RIDE DETAILS")).append("\n").append(rule(lineWidth));
@@ -231,34 +226,26 @@ public class ThermalPrinterManager {
                 "Duration:", ticket.getRideDurationInHour() + " Hour(s)", lineWidth))
         .append("\n");
     if (ticket.isLifeJacketRequired())
-      sb.append(
-              formatLine(
-                  "Life Jackets:", String.valueOf(ticket.getLifeJacketCount()), lineWidth))
+      sb.append(formatLine("Life Jackets:", String.valueOf(ticket.getLifeJacketCount()), lineWidth))
           .append("\n");
     if (ticket.isParkingRequired()) {
       String vehicle = ticket.getVehicleTypeDisplay();
       if (ticket.getVehicleNumber() != null && !ticket.getVehicleNumber().isBlank())
         vehicle += " | " + ticket.getVehicleNumber().toUpperCase(Locale.ROOT);
-      sb.append(formatLineWithBoldValue("Vehicle Parking:", vehicle, lineWidth))
-          .append("\n");
+      sb.append(formatLineWithBoldValue("Vehicle Parking:", vehicle, lineWidth)).append("\n");
     }
     sb.append("\n").append(bold("FEE BREAKDOWN")).append("\n").append(rule(lineWidth));
-    sb.append(
-            formatLineWithBoldValue(
-                "Boat Ride Fee:", "Rs " + ticket.getBoatRideFee(), lineWidth))
+    sb.append(formatLineWithBoldValue("Boat Ride Fee:", "Rs " + ticket.getBoatRideFee(), lineWidth))
         .append("\n");
     if (ticket.isLifeJacketRequired())
       sb.append(formatLine("Life Jacket Fee:", "Rs " + ticket.getLifeJacketFee(), lineWidth))
           .append("\n");
     if (ticket.isParkingRequired())
-      sb.append(
-              formatLineWithBoldValue(
-                  "Parking Fee:", "Rs " + ticket.getParkingFee(), lineWidth))
+      sb.append(formatLineWithBoldValue("Parking Fee:", "Rs " + ticket.getParkingFee(), lineWidth))
           .append("\n\n");
     if (ticket.getCounterPayable() > 0) {
       sb.append(bold(centerText("PAYABLE AT COUNTER", lineWidth))).append("\n");
-      sb.append(bold(centerText("Rs " + ticket.getCounterPayable(), lineWidth)))
-          .append("\n");
+      sb.append(bold(centerText("Rs " + ticket.getCounterPayable(), lineWidth))).append("\n");
       sb.append(centerText("(PARKING FEE ONLY)", lineWidth)).append("\n");
     }
     return sb.append(rule(lineWidth))
