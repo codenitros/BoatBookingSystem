@@ -137,13 +137,13 @@
                     <Label text="Select Vehicle Type:" styleClass="field-label"/>
 
                     <HBox spacing="10" alignment="CENTER_LEFT">
-                        <RadioButton fx:id="rbCar" text="Car (Rs 20)"
+                        <RadioButton fx:id="rbCar" text="Car"
                                      styleClass="vehicle-radio"
                                      toggleGroup="$vehicleGroup"/>
-                        <RadioButton fx:id="rbTempo" text="Tempo Traveller (Rs 40)"
+                        <RadioButton fx:id="rbTempo" text="Tempo Traveller"
                                      styleClass="vehicle-radio"
                                      toggleGroup="$vehicleGroup"/>
-                        <RadioButton fx:id="rbBus" text="Bus (Rs 50)"
+                        <RadioButton fx:id="rbBus" text="Bus"
                                      styleClass="vehicle-radio"
                                      toggleGroup="$vehicleGroup"/>
                     </HBox>

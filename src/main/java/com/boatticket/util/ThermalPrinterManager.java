@@ -30,7 +30,7 @@ public class ThermalPrinterManager {
   private static final int RP4230_PRINTABLE_WIDTH_DOTS = 832;
   private static final int RP4230_DPI = 203;
   private static final int ROLL_WIDTH_DOTS = 640;
-  private static final int NORMAL_FONT_CHARACTER_WIDTH_DOTS = 16;
+  private static final int NORMAL_FONT_CHARACTER_WIDTH_DOTS = 12;
   // The 80 mm roll has a 10 mm (80-dot) unprintable area on the left, leaving 70 mm (560 dots)
   // for content. Raw ESC/POS bypasses the Windows driver setting, so the printer margin is set
   // explicitly below.
@@ -123,9 +123,9 @@ public class ThermalPrinterManager {
   private static void writeCenteredLogo(ByteArrayOutputStream output, int printableWidth)
       throws IOException {
     BufferedImage logo = loadAndScaleLogo(printableWidth);
-    int bytesPerRow = (logo.getWidth() + 7) / 8;
-    int leftPadding = Math.max(0, (printableWidth - bytesPerRow * 8) / 2);
-    output.write(new byte[] {0x1B, 0x24, (byte) leftPadding, (byte) (leftPadding >> 8)}); // ESC $
+    int rasterWidth = Math.max(8, printableWidth - (printableWidth % 8)); // must be multiple of 8
+    int bytesPerRow = rasterWidth / 8;
+    int logoLeft = Math.max(0, (rasterWidth - logo.getWidth()) / 2);
     output.write(
         new byte[] {
           0x1D,
@@ -141,8 +141,11 @@ public class ThermalPrinterManager {
       for (int byteIndex = 0; byteIndex < bytesPerRow; byteIndex++) {
         int bits = 0;
         for (int bit = 0; bit < 8; bit++) {
-          int x = byteIndex * 8 + bit;
-          if (x < logo.getWidth() && isDark(logo.getRGB(x, y))) bits |= 0x80 >> bit;
+          int rasterX = byteIndex * 8 + bit;
+          int logoX = rasterX - logoLeft;
+          if (logoX >= 0 && logoX < logo.getWidth() && isDark(logo.getRGB(logoX, y))) {
+            bits |= 0x80 >> bit;
+          }
         }
         output.write(bits);
       }
@@ -196,73 +199,72 @@ public class ThermalPrinterManager {
     sb.append(bold(centerText(ConfigManager.getReceiptLocation() + ", RECEIPT", lineWidth)))
         .append("\n");
     sb.append(rule(lineWidth));
+    sb.append(formatLine("Ticket ID:", ticket.getTicketId(), lineWidth)).append("\n");
     sb.append(
             formatLine(
-                "       DATE & TIME:", formatDateTime(ticket.getFormattedBookingTime()), lineWidth))
-        .append("\n\n");
-    sb.append(formatLine("       Persons:", String.valueOf(ticket.getNumberOfPeople()), lineWidth))
+                "Date & Time:", formatDateTime(ticket.getFormattedBookingTime()), lineWidth))
+        .append("\n");
+    sb.append(formatLine("People:", String.valueOf(ticket.getNumberOfPeople()), lineWidth))
         .append("\n\n");
     if (ticket.getBoatOwner() != null) {
-      sb.append(bold("       DRIVER & BOAT DETAILS")).append(rule(lineWidth)).append("\n");
+      sb.append(bold("DRIVER & BOAT DETAILS")).append("\n").append(rule(lineWidth));
       sb.append(
               formatLine(
-                  "       Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
+                  "Driver SL No:", String.valueOf(ticket.getBoatOwner().getId()), lineWidth))
           .append("\n");
-      sb.append(formatLine("       Driver:", ticket.getBoatOwner().getDriverName(), lineWidth))
+      sb.append(formatLine("Driver:", ticket.getBoatOwner().getDriverName(), lineWidth))
           .append("\n");
-      sb.append(formatLine("       Driver Number:", ticket.getBoatOwner().getContact(), lineWidth))
+      sb.append(formatLine("Driver Phone Number:", ticket.getBoatOwner().getContact(), lineWidth))
           .append("\n");
-      sb.append(formatLine("       Boat HR:", ticket.getBoatOwner().getBoatHRNumber(), lineWidth))
+      sb.append(formatLine("Boat HR Number:", ticket.getBoatOwner().getBoatHRNumber(), lineWidth))
           .append("\n");
-      sb.append(formatLine("       Jetty:", ticket.getBoatOwner().getJetty(), lineWidth))
+      sb.append(formatLine("Jetty:", ticket.getBoatOwner().getJetty(), lineWidth))
           .append("\n");
       sb.append(
               formatLine(
-                  "       Capacity:", ticket.getBoatOwner().getCapacity() + " persons", lineWidth))
-          .append("\n");
+                  "Capacity:", ticket.getBoatOwner().getCapacity() + " people", lineWidth))
+          .append("\n\n");
     }
-    sb.append(bold("       RIDE DETAILS")).append("\n").append(rule(lineWidth));
+    sb.append(bold("RIDE DETAILS")).append("\n").append(rule(lineWidth));
     sb.append(
             formatLineWithBoldValue(
-                "       Duration:", ticket.getRideDurationInHour() + " HOUR(S)", lineWidth))
+                "Duration:", ticket.getRideDurationInHour() + " Hour(s)", lineWidth))
         .append("\n");
     if (ticket.isLifeJacketRequired())
       sb.append(
               formatLine(
-                  "       Life Jackets:", String.valueOf(ticket.getLifeJacketCount()), lineWidth))
+                  "Life Jackets:", String.valueOf(ticket.getLifeJacketCount()), lineWidth))
           .append("\n");
     if (ticket.isParkingRequired()) {
       String vehicle = ticket.getVehicleTypeDisplay();
       if (ticket.getVehicleNumber() != null && !ticket.getVehicleNumber().isBlank())
         vehicle += " | " + ticket.getVehicleNumber().toUpperCase(Locale.ROOT);
-      sb.append(formatLineWithBoldValue("       Vehicle Parking:", vehicle, lineWidth))
+      sb.append(formatLineWithBoldValue("Vehicle Parking:", vehicle, lineWidth))
           .append("\n");
     }
-    sb.append("\n").append(bold("       FEE BREAKDOWN")).append("\n").append(rule(lineWidth));
+    sb.append("\n").append(bold("FEE BREAKDOWN")).append("\n").append(rule(lineWidth));
     sb.append(
             formatLineWithBoldValue(
-                "       Boat Ride Fee:", "Rs " + ticket.getBoatRideFee(), lineWidth))
+                "Boat Ride Fee:", "Rs " + ticket.getBoatRideFee(), lineWidth))
         .append("\n");
     if (ticket.isLifeJacketRequired())
-      sb.append(formatLine("       Life Jacket Fee:", "Rs " + ticket.getLifeJacketFee(), lineWidth))
+      sb.append(formatLine("Life Jacket Fee:", "Rs " + ticket.getLifeJacketFee(), lineWidth))
           .append("\n");
     if (ticket.isParkingRequired())
       sb.append(
               formatLineWithBoldValue(
-                  "       Parking Fee:", "Rs " + ticket.getParkingFee(), lineWidth))
-          .append("\n");
+                  "Parking Fee:", "Rs " + ticket.getParkingFee(), lineWidth))
+          .append("\n\n");
     if (ticket.getCounterPayable() > 0) {
-      sb.append("\n").append(bold(centerText("       COUNTER PAYMENT", lineWidth))).append("\n");
-      sb.append(bold(centerText("       PAYABLE AT COUNTER", lineWidth))).append("\n");
-      sb.append(bold(centerText("       Rs " + ticket.getCounterPayable(), lineWidth)))
+      sb.append(bold(centerText("PAYABLE AT COUNTER", lineWidth))).append("\n");
+      sb.append(bold(centerText("Rs " + ticket.getCounterPayable(), lineWidth)))
           .append("\n");
-      sb.append(centerText("       (PARKING FEE ONLY)", lineWidth)).append("\n");
+      sb.append(centerText("(PARKING FEE ONLY)", lineWidth)).append("\n");
     }
-    return sb.append("\n")
-        .append(rule(lineWidth))
-        .append(bold(centerText("       Thank You!", lineWidth)))
+    return sb.append(rule(lineWidth))
+        .append(bold(centerText("Thank You!", lineWidth)))
         .append("\n")
-        .append(bold(centerText("       Safe & Happy Riding", lineWidth)))
+        .append(bold(centerText("Safe & Happy Boating", lineWidth)))
         .append("\n")
         .toString();
   }
