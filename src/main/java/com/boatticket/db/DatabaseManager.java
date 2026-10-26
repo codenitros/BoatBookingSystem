@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -471,44 +472,22 @@ public class DatabaseManager {
       int rowNumber = 1;
       int totalParkingFee = 0;
 
-      try (Connection connection = getConnection();
-          PreparedStatement statement =
-              connection.prepareStatement(
-                  "SELECT t.ticket_id, t.booking_time, t.customer_name, "
-                      + "t.contact_number, t.num_people, t.ride_duration_hour, "
-                      + "t.total_fee, b.driver_name, t.parking_fee "
-                      + "FROM tickets t LEFT JOIN boats b ON t.boat_id = b.id "
-                      + "ORDER BY t.booking_time DESC");
-          ResultSet resultSet = statement.executeQuery()) {
+      // Same rows (and same oldest-to-latest order) as the PDF report.
+      List<TicketReport> reportRows = fetchTicketsInRange(fromDate, toDate);
 
-        // booking_time is stored as free-text "dd-MM-yyyy  HH:mm:ss",
-        // which does not sort/filter correctly as a SQL string
-        // comparison, so the date range is applied here in Java
-        // after parsing each row with the same formatter used to
-        // write it.
-        while (resultSet.next()) {
-          String bookingTimeText = resultSet.getString("booking_time");
-          LocalDate bookingDate = parseBookingDate(bookingTimeText);
+      for (TicketReport report : reportRows) {
+        Row row = sheet.createRow(rowNumber++);
+        row.createCell(0).setCellValue(report.getTicketId());
+        row.createCell(1).setCellValue(report.getBookingTime());
+        row.createCell(2).setCellValue(report.getCustomerName());
+        row.createCell(3).setCellValue(report.getContactNumber());
+        row.createCell(4).setCellValue(report.getNumberOfPeople());
+        row.createCell(5).setCellValue(report.getRideDurationInHour());
+        row.createCell(6).setCellValue(report.getTotalFee());
+        row.createCell(7).setCellValue(report.getDriverName());
+        row.createCell(8).setCellValue(report.getParkingFee());
 
-          if (bookingDate == null
-              || bookingDate.isBefore(fromDate)
-              || bookingDate.isAfter(toDate)) {
-            continue;
-          }
-
-          Row row = sheet.createRow(rowNumber++);
-          row.createCell(0).setCellValue(resultSet.getString("ticket_id"));
-          row.createCell(1).setCellValue(bookingTimeText);
-          row.createCell(2).setCellValue(resultSet.getString("customer_name"));
-          row.createCell(3).setCellValue(resultSet.getString("contact_number"));
-          row.createCell(4).setCellValue(resultSet.getInt("num_people"));
-          row.createCell(5).setCellValue(resultSet.getInt("ride_duration_hour"));
-          row.createCell(6).setCellValue(resultSet.getInt("total_fee"));
-          row.createCell(7).setCellValue(resultSet.getString("driver_name"));
-          row.createCell(8).setCellValue(resultSet.getInt("parking_fee"));
-
-          totalParkingFee += resultSet.getInt("parking_fee");
-        }
+        totalParkingFee += report.getParkingFee();
       }
 
       Row totalRow = sheet.createRow(rowNumber + 1);
@@ -543,12 +522,19 @@ public class DatabaseManager {
   }
 
   private LocalDate parseBookingDate(String bookingTimeText) {
+    LocalDateTime bookingDateTime = parseBookingDateTime(bookingTimeText);
+    return bookingDateTime == null ? null : bookingDateTime.toLocalDate();
+  }
+
+  // Converts the stored booking time text into a real date-time.
+  // Returns null if the text is blank or not in the expected format.
+  private LocalDateTime parseBookingDateTime(String bookingTimeText) {
     if (bookingTimeText == null || bookingTimeText.isBlank()) {
       return null;
     }
 
     try {
-      return LocalDateTime.parse(bookingTimeText.trim(), TICKET_TIME_FORMAT).toLocalDate();
+      return LocalDateTime.parse(bookingTimeText.trim(), TICKET_TIME_FORMAT);
     } catch (Exception e) {
       return null;
     }
@@ -569,8 +555,7 @@ public class DatabaseManager {
                 "SELECT t.ticket_id, t.booking_time, t.customer_name, "
                     + "t.contact_number, t.num_people, t.ride_duration_hour, "
                     + "t.total_fee, b.driver_name, t.parking_fee "
-                    + "FROM tickets t LEFT JOIN boats b ON t.boat_id = b.id "
-                    + "ORDER BY t.booking_time DESC");
+                    + "FROM tickets t LEFT JOIN boats b ON t.boat_id = b.id");
         ResultSet resultSet = statement.executeQuery()) {
 
       while (resultSet.next()) {
@@ -594,6 +579,14 @@ public class DatabaseManager {
                 resultSet.getInt("parking_fee")));
       }
     }
+
+    // booking_time is stored as text "dd-MM-yyyy  HH:mm:ss". Sorting that text in SQL
+    // orders by DAY number first (30, 29, 18, 14 ...) and ignores the month, so the
+    // report came out mixed up. Sort here by the real date-time instead: oldest first.
+    rows.sort(
+        Comparator.comparing(
+            (TicketReport row) -> parseBookingDateTime(row.getBookingTime()),
+            Comparator.nullsLast(Comparator.naturalOrder())));
 
     return rows;
   }
