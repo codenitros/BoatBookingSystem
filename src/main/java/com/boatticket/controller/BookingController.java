@@ -96,6 +96,7 @@ public class BookingController implements Initializable {
     rbCar.setUserData(Ticket.VehicleType.CAR);
     rbBus.setUserData(Ticket.VehicleType.BUS);
     rbTempo.setUserData(Ticket.VehicleType.TEMPOTRAVELLER);
+    updateVehicleFeeLabels();
 
     rb1Hour.setUserData(1);
     rb2Hour.setUserData(2);
@@ -300,6 +301,8 @@ public class BookingController implements Initializable {
   }
 
   private void refreshFees() {
+    updateVehicleFeeLabels();
+
     int people = safeInt(peopleSpinner, 1);
     int duration = getDurationFromUI();
 
@@ -318,6 +321,12 @@ public class BookingController implements Initializable {
     driverAmountLabel.setText("Rs " + amountToDriver);
     counterAmountLabel.setText("Rs " + parkingFee);
     totalFeeLabel.setText("Rs " + total);
+  }
+
+  private void updateVehicleFeeLabels() {
+    rbCar.setText("Car (Rs " + ConfigManager.getParkingFeeCar() + ")");
+    rbBus.setText("Bus (Rs " + ConfigManager.getParkingFeeBus() + ")");
+    rbTempo.setText("Tempo Traveller (Rs " + ConfigManager.getParkingFeeTempoTraveller() + ")");
   }
 
   private int getParkingFeeFromUI() {
@@ -654,14 +663,16 @@ public class BookingController implements Initializable {
 
     Label ticketDetails =
         new Label(
-            "Customer: "
+            "Driver SL No: "
+                + ticket.getBoatOwner().getId()
+                + "  |  Driver Name: "
+                + ticket.getBoatOwner().getDriverName()
+                + "  |  Customer: "
                 + ticket.getCustomerName()
                 + "  |  Ticket ID: "
                 + ticket.getTicketId()
                 + "  |  Time: "
-                + ticket.getFormattedBookingTime()
-                + "  |  Driver: "
-                + driverName);
+                + ticket.getFormattedBookingTime());
 
     ticketDetails.setWrapText(true);
     ticketDetails.setMaxWidth(Double.MAX_VALUE);

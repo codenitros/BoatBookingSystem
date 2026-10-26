@@ -166,7 +166,6 @@ jobs:
             --icon src/main/resources/BoatBookingSystem.ico `
             --dest dist `
             --win-dir-chooser `
-            --win-console `
             --win-menu `
             --win-menu-group "Boat Booking System - ${{ steps.release.outputs.tenantDisplayName }}" `
             --win-shortcut `
